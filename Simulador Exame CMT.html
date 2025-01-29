@@ -1,0 +1,2715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador de Exame CMT</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f9f9f9;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        .question {
+            font-weight: bold;
+            margin-top: 20px;
+        }
+        .error-message {
+            color: red;
+            font-weight: bold;
+            margin-top: 10px;
+            display: none;
+        }
+        .question {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #fff;
+        }
+        .answers button {
+            display: block;
+            margin: 10px auto;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f0f0f0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .answers button.selected {
+            background-color: #add8e6; /* Azul bebê */
+            border-color: #87ceeb;
+            color: white;
+            font-weight: bold;
+            transform: scale(1.05);
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .correct {
+            background-color: #90ee90 !important; /* Verde claro para respostas corretas */
+        }
+        .incorrect {
+            background-color: #ffcccb !important; /* Vermelho claro para respostas erradas */
+        }
+        .hidden {
+            display: none;
+        }
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 20px;
+        }
+        .navigation button {
+            padding: 10px 20px;
+            font-size: 16px;
+            color: white;
+            background-color: #007bff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .navigation button:hover {
+            background-color: #0056b3;
+        }
+        .navigation span {
+            font-size: 16px;
+        }
+        .submit-btn {
+            padding: 15px 30px;
+            font-size: 18px;
+            color: white;
+            background-color: #28a745;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .submit-btn:hover {
+            background-color: #218838;
+        }
+        .crying-image, .congrats-image {
+            display: block;
+            margin: 20px auto;
+            max-width: 100%;
+            height: auto;
+        }
+        .taxi-image {
+            display: block;
+            margin: 20px auto;
+            max-width: 100px;
+            height: auto;
+        }
+        #stats-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 10px;
+            font-size: 16px;
+            background-color: #17a2b8;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            display: none;
+        }
+        #stats-btn:hover {
+            background-color: #138496;
+        }
+        #stats-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 20px;
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            display: none;
+        }
+        #stats-popup button {
+            margin-top: 10px;
+            padding: 10px;
+            font-size: 16px;
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #stats-popup button:hover {
+            background-color: #c82333;
+        }
+        #stats-popup .reset-btn {
+            background-color: #007bff;
+            color: white;
+        }
+        #timer {
+            font-size: 20px;
+            font-weight: bold;
+            color: #dc3545;
+            margin-top: 20px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Certificado de Motorista de Táxi</h1>
+        <p id="error-message" class="error-message"></p>
+        <img class="taxi-image" id="taxi-image" src="https://cdn-icons-png.flaticon.com/512/566/566494.png" alt="Taxi Image">
+        <button class="start-btn" id="start-btn" onclick="startTest()">Iniciar Teste</button>
+        <button class="hidden" id="review-btn" onclick="reviewTest()">Rever Teste</button>
+        <button class="hidden" id="restart-btn" onclick="restartTest()">Tentar Novamente</button>
+        <button class="hidden" id="back-button" onclick="goBack()">Voltar</button>
+
+        <div id="questions-container" class="hidden">
+            <div id="question-display" class="question"></div>
+            <div class="navigation">
+                <button id="prev-btn" class="hidden" onclick="prevQuestion()">&larr; Anterior</button>
+                <span id="question-number"></span>
+                <button id="next-btn" onclick="nextQuestion()">Próxima &rarr;</button>
+            </div>
+            <div id="timer">01:00:00</div>
+        </div>
+
+        <button class="submit-btn hidden" id="submit-btn" onclick="submitTest()">Submeter Teste</button>
+        <button class="restart-btn hidden" id="restart-btn" onclick="restartTestAndShowStats()">Tentar Novamente</button>
+
+        <div id="result-container" class="hidden">
+            <h2 id="result-message"></h2>
+            <img id="crying-image" class="crying-image" style="display: none;" src="https://www.onlygfx.com/wp-content/uploads/2020/05/fail-stamp-7.png" alt="Crying Image">
+            <img id="congrats-image" class="congrats-image" style="display: none;" src="https://www.bookstation.ie/wp-content/uploads/2022/04/680099-0-1.jpg" alt="Congrats Image">
+        </div>
+
+        <button id="stats-btn" onclick="showStatsPopup()">Estatísticas</button>
+        <div id="stats-popup">
+            <h3>Estatísticas</h3>
+            <p>Testes Realizados: <span id="tests-taken">0</span></p>
+            <p>Testes Aprovados: <span id="tests-passed">0</span></p>
+            <p>Testes Reprovados: <span id="tests-failed">0</span></p>
+            <button onclick="closeStatsPopup()">Fechar</button>
+			<button class="reset-btn" onclick="resetStats()">Reset</button>
+        </div>
+    </div>
+
+
+    <script>
+        let currentQuestionIndex = 0;
+        let selectedAnswers = [];
+        let selectedQuestions = [];
+        let previousWrongQuestions = [];
+        let testsTaken = localStorage.getItem('testsTaken') ? parseInt(localStorage.getItem('testsTaken')) : 0;
+        let testsPassed = localStorage.getItem('testsPassed') ? parseInt(localStorage.getItem('testsPassed')) : 0;
+        let testsFailed = localStorage.getItem('testsFailed') ? parseInt(localStorage.getItem('testsFailed')) : 0;
+        let timeRemaining;
+        let timer;
+
+        const questions = [
+            {
+                question: "O aspeto mais importante para se obter sucesso quando se pretende estabelecer comunicação é:",
+                answers: [
+                    { text: "Fazer perguntas para esclarecer o ponto de vista da outra pessoa.", correct: false },
+                    { text: "Ser recetivo ao conteúdo e às emoções da outra pessoa.", correct: true },
+                    { text: "Ouvir para compreender.", correct: false },
+                    { text: "Demonstrar sempre concordância.", correct: false }
+                ]
+            },
+            {
+                question: "Apesar de existirem vários estilos de comunicação devemos utilizar preferencialmente:",
+                answers: [
+                    { text: "Passivo.", correct: false },
+                    { text: "Agressivo.", correct: false },
+                    { text: "Assertivo.", correct: true }
+                ]
+            },
+            {
+                question: "A barreira interna à comunicação está relacionada com:",
+                answers: [
+                    { text: "Má interpretação das palavras.", correct: false },
+                    { text: "Pressão do tempo.", correct: false },
+                    { text: "Desinteresse e desmotivação.", correct: false },
+                    { text: "Estão corretas as respostas a) e c).", correct: true }
+                ]
+            },
+            {
+                question: "As competências exigidas para o desempenho da função de motorista são:",
+                answers: [
+                    { text: "Meramente técnicas.", correct: false },
+                    { text: "Organizacionais e técnicas.", correct: false },
+                    { text: "Organizacionais, relacionais e técnicas.", correct: true }
+                ]
+            },
+            {
+                question: "A imagem de um motorista é formada em 30 segundos, dando-se maior importância a:",
+                answers: [
+                    { text: "Comunicação.", correct: false },
+                    { text: "Aparência.", correct: true },
+                    { text: "Conhecimento.", correct: false }
+                ]
+            },
+            {
+                question: "Quais as características que definem um bom líder?",
+                answers: [
+                    { text: "Ser capaz de apresentar uma visão que outros queiram alcançar.", correct: true },
+                    { text: "Ser ambicioso, carismático, confiante, independente e responsável.", correct: false },
+                    { text: "Ser capaz de satisfazer as necessidades pessoais e de grupo.", correct: true }
+                ]
+            },
+            {
+                question: "O que se entende por comunicação interpessoal?",
+                answers: [
+                    { text: "Método de comunicação que promove a troca de informação entre duas ou mais pessoas.", correct: true },
+                    { text: "Método de comunicação efetuado apenas por um interveniente.", correct: false },
+                    { text: "Atividade inativa e descontínua de troca de informações.", correct: false }
+                ]
+            },
+            {
+                question: "O processo de comunicação prevê a existência mínima de:",
+                answers: [
+                    { text: "Um emissor.", correct: false },
+                    { text: "Um recetor.", correct: false },
+                    { text: "Um emissor e um recetor.", correct: true }
+                ]
+            },
+            {
+                question: "O que se entende por ruídos durante o processo de comunicação?",
+                answers: [
+                    { text: "Algo que interfere com a mensagem enviada, mas que não altera o seu significado.", correct: false },
+                    { text: "Algo que interfere com a mensagem enviada bloqueando e alterando o seu significado.", correct: true },
+                    { text: "Algo que interfere com a mensagem enviada que bloqueia mas não altera o seu significado.", correct: false }
+                ]
+            },
+            {
+                question: "Fazem parte das barreiras internas à comunicação:",
+                answers: [
+                    { text: "Diferenças sociais, culturais, sexuais, os julgamentos e as suposições.", correct: true },
+                    { text: "Apenas as diferenças sociais, culturais e sexuais.", correct: false },
+                    { text: "Unicamente as diferenças sociais e culturais.", correct: false }
+                ]
+            },
+			            {
+                question: "Entendem-se por barreiras externas à comunicação:",
+                answers: [
+                    { text: "Os julgamentos.", correct: false },
+                    { text: "Os sinais não verbais e as pressões de tempo.", correct: true },
+                    { text: "As diferenças sociais e culturais.", correct: false }
+                ]
+            },
+            {
+                question: "O relacionamento interpessoal está classificado nos estilos:",
+                answers: [
+                    { text: "Assertivo, passivo, manipulador e agressivo.", correct: true },
+                    { text: "Assertivo e agressivo.", correct: false },
+                    { text: "Passivo e ativo.", correct: false }
+                ]
+            },
+            {
+                question: "Um individuo com estilo assertivo é uma pessoa que:",
+                answers: [
+                    { text: "Concorda sempre com os outros.", correct: false },
+                    { text: "Defende os seus próprios interesses.", correct: true },
+                    { text: "Valoriza-se à custa dos outros.", correct: false }
+                ]
+            },
+            {
+                question: "As pessoas que estabelecem uma comunicação assertiva caracterizam-se por:",
+                answers: [
+                    { text: "Manifestar a sua opinião, respeitando sempre a opinião do outro.", correct: true },
+                    { text: "Ter bom sentido de humor.", correct: false },
+                    { text: "Aceitar passivamente tudo que lhe é transmitido.", correct: false },
+                    { text: "Não aceita qualquer ponto de vista.", correct: false }
+                ]
+            },
+            {
+                question: "Os peões e os condutores de velocípedes são considerados utilizadores vulneráveis da via pública.",
+                answers: [
+                    { text: "Certo.", correct: true },
+                    { text: "Errado.", correct: false }
+                ]
+            },
+            {
+                question: "As crianças, idosos, grávidas e pessoas com mobilidade reduzida são considerados utilizadores vulneráveis da via pública.",
+                answers: [
+                    { text: "Certo.", correct: true },
+                    { text: "Errado.", correct: false }
+                ]
+            },
+            {
+                question: "Um condutor pode ser titular de mais do que uma carta de condução de modelo comunitário?",
+                answers: [
+                    { text: "Pode.", correct: false },
+                    { text: "Não pode.", correct: true }
+                ]
+            },
+            {
+                question: "A posição de marcha dos veículos deve fazer-se pelo lado direito da faixa de rodagem:",
+                answers: [
+                    { text: "Conservando das bermas ou passeios uma distância suficiente que permita evitar acidentes.", correct: true },
+                    { text: "Não sendo necessário conservar das bermas ou passeios qualquer distância.", correct: false },
+                    { text: "Conservando somente uma distância dos passeios que permita evitar acidentes.", correct: false }
+                ]
+            },
+            {
+                question: "Nas rotundas, o condutor deve ter o seguinte comportamento:",
+                answers: [
+                    { text: "Se pretender sair da rotunda na primeira via de saída, deve ocupar a via da direita.", correct: true },
+                    { text: "Se pretender sair da rotunda na primeira via de saída, pode ocupar qualquer das vias.", correct: false },
+                    { text: "Se pretender sair da rotunda na primeira via de saída, pode ocupar qualquer das duas vias mais à direita.", correct: false }
+                ]
+            },
+            {
+                question: "Sempre que no mesmo sentido existem duas ou mais vias de trânsito, o condutor deve circular pela via mais à direita:",
+                answers: [
+                    { text: "Podendo utilizar outra se não houver lugar naquela e somente para mudar de direção", correct: false },
+                    { text: "Podendo utilizar outra se não houver lugar naquela e também para ultrapassar ou mudar de direção.", correct: true },
+					{ text: "Podendo utilizar outra se não houver lugar naquela e somente para ultrapassar.", correct: false }
+                ]
+            },
+			{
+                question: "Os velocípedes podem circular nas bermas?",
+                answers: [
+                    { text: "Sim, desde que não ponham em perigo ou perturbem os peões que nelas circulem.", correct: true },
+                    { text: "Não, os velocípedes nunca podem circular nas bermas.", correct: false },
+					{ text: "Sim, os velocípedes podem circular nas bermas sem qualquer problema.", correct: false }
+                ]
+            },
+			{
+                question: "Os velocípedes podem circular nos passeios?",
+                answers: [
+                    { text: "Não. Os velocípedes nunca podem circular nos passeios.", correct: false },
+                    { text: "Sim, se forem conduzidos por crianças até aos 10 anos, desde que não ponham em perigo ou perturbem os peões.", correct: true }
+                ]
+            },
+			{
+                question: "O condutor deve regular a velocidade:",
+                answers: [
+                    { text: "Atendendo somente às características e estado do veículo.", correct: false },
+                    { text: "Atendendo à presença de utilizadores vulneráveis.", correct: true },
+					{ text: "Atendendo somente à carga transportada.", correct: false }
+                ]
+            },
+			{
+                question: "O condutor deve regular a velocidade:",
+                answers: [
+                    { text: "Atendendo à presença de utilizadores vulneráveis.", correct: true },
+                    { text: "Atendendo somente à intensidade do trânsito.", correct: false },
+					{ text: "Atendendo à carga transportada no veículo", correct: false }
+                ]
+            },
+			{
+                question: "A velocidade deve ser especialmente moderada:",
+                answers: [
+                    { text: "Unicamente nas descidas de inclinação acentuada.", correct: false },
+                    { text: "Unicamente nas pontes, túneis e passagens de nível.", correct: false },
+					{ text: "Nas zonas de coexistência.", correct: true }
+                ]
+            },
+			{
+                question: "A velocidade deve ser especialmente moderada:",
+                answers: [
+                    { text: "À aproximação de utilizadores vulneráveis.", correct: true },
+                    { text: "Unicamente nas descidas de inclinação acentuada.", correct: false },
+					{ text: "Unicamente nos locais de grande intensidade de trânsito.", correct: false }
+                ]
+            },
+			{
+                question: "Dentro das localidades, em zonas de coexistência os automóveis ligeiros de passageiros sem reboque: ",
+                answers: [
+                    { text: "Não podem exceder a velocidade de 30 km/h. ", correct: false },
+                    { text: "Não podem exceder a velocidade de 20 km/h. ", correct: true },
+					{ text: "Não podem exceder a velocidade de 50 km/h. ", correct: false }
+                ]
+            },
+			{
+                question: "Os motoristas de táxi devem ceder a passagem aos velocípedes: ",
+                answers: [
+                    { text: "Que atravessem a faixa de rodagem nas passagens assinaladas.", correct: true },
+                    { text: "Que saiam de um parque de estacionamento. ", correct: false },
+					{ text: "Que entrem numa rotunda. ", correct: false }
+                ]
+            },
+			{
+                question: "O motorista de táxi deve ceder a passagem a um veículo que sai de um estacionamento. ",
+                answers: [
+                    { text: "Certo.", correct: false },
+                    { text: "Errado. ", correct: true }
+                ]
+            },
+			{
+                question: "Na realização da manobra de ultrapassagem a um velocípede, o motorista de táxi: ",
+                answers: [
+                    { text: "Deve guardar uma distância lateral mínima de 1,5 m e abrandar a velocidade. ", correct: true },
+                    { text: "Não necessita de ter qualquer precaução.", correct: false },
+					{ text: "Deve guardar uma distância lateral mínima de 2,5 metros.", correct: false }
+                ]
+            },
+			{
+                question: "Existindo mais do que uma via de trânsito no mesmo sentido, na realização de uma manobra de ultrapassagem, o motorista de táxi:",
+                answers: [
+                    { text: "Deve ocupar a via de trânsito à esquerda daquela em que circula o veículo ultrapassado.", correct: true },
+                    { text: "Pode ocupar qualquer das vias à esquerda do veículo ultrapassado. ", correct: false }
+                ]
+            },
+			{
+                question: "É proibida a ultrapassagem: ",
+                answers: [
+                    { text: "Somente mas passagens assinaladas para a travessia de peões.", correct: false },
+                    { text: "Imediatamente antes e nas passagens assinaladas para a travessia de peões e velocípedes.", correct: true },
+					{ text: "Somente nas lombas.", correct: false }
+                ]
+            },
+			{
+                question: "Nas zonas de coexistência partilhadas por peões e veículos: ",
+                answers: [
+                    { text: "Não existe sinalização nem regras especiais de trânsito.", correct: false },
+                    { text: "Existem regras especiais de trânsito.", correct: true }
+                ]
+            },
+			{
+                question: "A posição de marcha dos veículos deve fazer-se:",
+                answers: [
+                    { text: "Do lado direito da faixa de rodagem.", correct: true },
+					{ text: "Do lado esquerdo da faixa de rodagem.", correct: false }
+                ]
+            },
+			{
+                question: "A posição de marcha dos veículos deve fazer-se: ",
+                answers: [
+                    { text: "Do lado esquerdo da faixa de rodagem.", correct: false },
+                    { text: "A uma distância das bermas que ou passeios suficiente, que permita evitar acidentes.", correct: true },
+					{ text: "O mais perto possível das bermas ou passeios.", correct: false }
+                ]
+            },
+			{
+                question: "O condutor, para falar ao telefone: ",
+                answers: [
+                    { text: "Deve utilizar a mão esquerda.", correct: false },
+                    { text: "Deve utilizar a mão direita.", correct: false },
+					{ text: "Deve colocar um microfone com sistema de alta voz, cuja utilização não implique manuseamento continuado.", correct: true }
+                ]
+            },
+			{
+                question: "Deve utilizar o colete retro-reflector, quem procede à remoção da carga, no caso de imobilização do veículo na faixa de rodagem.",
+                answers: [
+                    { text: "Certo.", correct: true },
+					{ text: "Errado.", correct: false }
+                ]
+            },
+			{
+                question: "É permitido o trânsito de veículos com avaria nas luzes, desde que disponham de:",
+                answers: [
+                    { text: "O médio do lado esquerdo, conjuntamente com dois mínimos e à retaguarda, o indicador de presença do lado esquerdo e uma das luzes de travagem, quando obrigatória.", correct: true },
+                    { text: "O médio do lado direito, conjuntamente com dois mínimos e à retaguarda, o indicador de presença do lado esquerdo e uma das luzes de travagem, quando obrigatória.", correct: false },
+					{ text: "O médio do lado direito, conjuntamente com um dos mínimos e à retaguarda, o indicador de presença do lado esquerdo e uma das luzes de travagem, quando obrigatória.", correct: false }
+                ]
+            },
+						{
+                question: "Legalmente, considera-se condução sob a influência do álcool, quando o condutor apresenta:",
+                answers: [
+                    { text: "Uma taxa de álcool no sangue inferior a 0,5 g/l.", correct: false },
+                    { text: "Uma taxa de álcool no sangue de 0,3 g/l.", correct: false },
+					{ text: "Uma taxa de álcool no sangue igual ou superior a 0,5 g/l.", correct: true }
+                ]
+            },
+			{
+                question: "As crianças com menos de 12 anos de idade e altura inferior a 135cm, podem ser transportadas em automóvel apenas com o cinto de segurança?",
+                answers: [
+                    { text: "Sim podem, sem qualquer restrição.", correct: false },
+                    { text: "Não. As crianças podem ser transportadas mas utilizando um sistema de retenção homologado e adaptado ao seu tamanho.", correct: true }
+                ]
+            },
+			{
+                question: "Com que idade e altura as crianças podem ser transportadas em automóvel com um sistema de retenção homologada e adaptado ao seu tamanho?",
+                answers: [
+                    { text: "Crianças com menos de 12 anos e altura inferior a 135 cm.", correct: true },
+                    { text: "Crianças com menos de 12 anos e altura inferior a 150 cm.", correct: false },
+					{ text: "Não existem idades nem alturas definidas.", correct: false }
+                ]
+            },
+			{
+                question: "O condutor de um automóvel ligeiro, com 20 anos de idade, considera-se sob influência do álcool, quando apresenta uma taxa de álcool por litro de sangue igual ou superior a:",
+                answers: [
+                    { text: "0,2 g/l de sangue.", correct: true },
+                    { text: "0,3 g/l de sangue.", correct: false },
+					{ text: "0,5 g/l de sangue.", correct: false }
+                ]
+            },
+			{
+                question: "O condutor de um veículo de transporte público de passageiros é considerado sob influência do álcool, quando apresenta uma taxa de álcool por litro de sangue igual ou superior a: ",
+                answers: [
+                    { text: "0,2 g/l de sangue.", correct: true },
+                    { text: "0,3 g/l de sangue.", correct: false },
+					{ text: "0,5 g/l de sangue.", correct: false }
+                ]
+            },
+			{
+                question: "Pratica uma contraordenação grave o condutor de um táxi ao conduzir com uma taxa de álcool por litro de sangue de:",
+                answers: [
+                    { text: "0,7 g/l de sangue.", correct: false },
+                    { text: "0,4 g/l de sangue.", correct: false },
+					{ text: "0,2 g/l de sangue.", correct: true }
+                ]
+            },
+			{
+                question: "O condutor de um táxi que conduza com uma taxa de álcool no sangue de 1,3 g/l, pratica:",
+                answers: [
+                    { text: "Uma infração grave.", correct: false },
+                    { text: "Uma infração muito grave.", correct: false },
+					{ text: "Um crime rodoviário.", correct: true }
+                ]
+            },
+			{
+                question: "Os condutores que se recusem a submeter-se às provas para 'deteção do estado de influenciado pelo álcool' mas continuam a conduzir, são punidos:",
+                answers: [
+                    { text: "Por crime de desobediência qualificada e são impedidos de conduzir.", correct: true },
+                    { text: "Cometem uma infração muito grave, mas podem continuar a conduzir.", correct: false }
+                ]
+            },
+			{
+                question: "Devem submeter-se às provas para a 'deteção do estado de influenciado' pelo álcool:",
+                answers: [
+                    { text: "Todos os condutores, peões e pessoas que se propuserem iniciar a condução.", correct: false },
+                    { text: "Apenas os condutores e os peões.", correct: false },
+					{ text: "Apenas os condutores e peões intervenientes em acidentes de trânsito.", correct: true }
+                ]
+            },
+			{
+                question: "Quem apresentar um resultado positivo no exame de pesquisa do álcool, fica impedido de conduzir pelo período de:",
+                answers: [
+                    { text: "10 horas.", correct: false },
+                    { text: "12 horas.", correct: true },
+					{ text: "14 horas.", correct: false }
+                ]
+            },
+			{
+                question: "Quem apresentar um resultado positivo no exame de pesquisa do álcool, pode conduzir passadas 10 horas.",
+                answers: [
+                    { text: "Certo.", correct: false },
+                    { text: "Errado.", correct: true }
+                ]
+            },
+			{
+                question: "Quem apresentar um resultado positivo no exame de pesquisa do álcool, pode conduzir passadas 14 horas.",
+                answers: [
+                    { text: "Certo.", correct: true },
+                    { text: "Errado.", correct: false }
+                ]
+            },
+			{
+                question: "Se o resultado de pesquisa do álcool no sangue for positivo, o condutor pode pedir uma contra prova no ar expirado ou no sangue. A escolha do método a utilizar é feita:",
+                answers: [
+                    { text: "Pela entidade fiscalizadora.", correct: false },
+                    { text: "Pelo próprio condutor.", correct: true }
+                ]
+            },
+			{
+                question: "No caso da contra prova confirmar um teor de álcool no sangue superior ao limite legal, quem paga as despesas deste exame?",
+                answers: [
+                    { text: "A entidade fiscalizadora que o efetuou.", correct: false },
+                    { text: "O hospital, no caso de análise de sangue.", correct: false },
+					{ text: "O condutor que a requereu.", correct: true },
+					{ text: "O Instituto da Mobilidade e dos Transportes.", correct: false }
+                ]
+            },
+			{
+                question: "Se o resultado da contra prova de pesquisa do álcool no sangue apresentar um resultado diferente do primeiro exame de pesquisa do álcool, qual prevalece?",
+                answers: [
+                    { text: "O resultado da contra prova prevalece sobre o do exame inicial.", correct: true },
+                    { text: "O resultado do exame inicial prevalece sobre o da contra prova.", correct: false },
+					{ text: "Nenhum e o condutor deve ser submetido a novo exame de pesquisa para desempate.", correct: false }
+                ]
+            },
+			{
+                question: "Quando a entidade fiscalizadora suspeite da utilização de meios suscetíveis de alterar o resultado do exame no ar expirado, pode:",
+                answers: [
+                    { text: "Mandar submeter o condutor a um exame médico.", correct: false },
+                    { text: "Mandar submeter o condutor a uma análise de sangue.", correct: true }
+                ]
+            },
+			{
+                question: "A ingestão de bebidas alcoólicas:",
+                answers: [
+                    { text: "Torna o condutor mais consciente do perigo.", correct: false },
+                    { text: "Aumenta a atenção do condutor.", correct: false },
+					{ text: "Diminui a capacidade de reação do condutor.", correct: true }
+                ]
+            },
+						{
+                question: "Qual é a influência da ingestão de bebidas alcoólicas na condução?",
+                answers: [
+                    { text: "Aumenta a capacidade de reação.", correct: false },
+                    { text: "Diminui a resistência física do condutor.", correct: true },
+					{ text: "Aumenta os reflexos do condutor.", correct: false }
+                ]
+            },
+			{
+                question: "Não deve conduzir na via publica um condutor com taxa de alcoolemia:",
+                answers: [
+                    { text: "Inferior a 0,2 g/l.", correct: false },
+                    { text: "Igual ou superior a 0,5 g/l.", correct: true }
+                ]
+            },
+			{
+                question: "Existem medicamentos capazes de prejudicar o desempenho do indivíduo ao volante? ",
+                answers: [
+                    { text: "Sim.", correct: true },
+                    { text: "Sim, mas apenas se forem ingeridos juntamente com bebidas alcoólicas.", correct: false },
+					{ text: "Sim, mas apenas se forem soporíferos.", correct: false }
+                ]
+            },
+			{
+                question: "O condutor que pretende sair da rotunda na primeira via de saída e não se encontra corretamente posicionado nessa via: ",
+                answers: [
+                    { text: "É sancionado com uma coima.", correct: true },
+                    { text: "Não lhe é aplicada nenhuma coima.", correct: true }
+                ]
+            },
+			{
+                question: "Para além do fator velocidade, a distância de travagem pode aumentar, se:",
+                answers: [
+                    { text: "O veículo não circular em autoestrada.", correct: false },
+                    { text: "O piso se encontrar seco.", correct: false },
+					{ text: "O veículo não estiver carregado.", correct: false },
+					{ text: "O pavimento se encontrar molhado.", correct: true }
+                ]
+            },
+			{
+                question: "A velocidade de um veículo deve depender:",
+                answers: [
+                    { text: "Apenas da intensidade do trânsito.", correct: false },
+                    { text: "Do estado da via e do veículo, da intensidade do trânsito e da carga transportada.", correct: true },
+					{ text: "Apenas do estado da via.", correct: false }
+                ]
+            },
+			{
+                question: "No exercício da condução, considera-se muito grave a seguinte contra ordenação:",
+                answers: [
+                    { text: "A utilização de máximos de modo a provocar encandeamento.", correct: true },
+                    { text: "A paragem ou o estacionamento nas bermas das auto-estradas ou vias equiparadas.", correct: false },
+					{ text: "O trânsito de veículos em sentido oposto ao estabelecido.", correct: false }
+                ]
+            },
+			{
+                question: "Numa rotunda devidamente sinalizada, tem prioridade de passagem os veículos que:",
+                answers: [
+                    { text: "Circulam na rotunda.", correct: true },
+                    { text: "Entram na rotunda. ", correct: false },
+					{ text: "Saem da rotunda.", correct: false }
+                ]
+            },
+			{
+                question: "É considerado 'reincidente' o condutor que cometa uma contraordenação, depois de ter sido condenado por outra contraordenação ao mesmo diploma legal ou seus regulamentos, também sancionado com sanção acessória, praticada a menos de:",
+                answers: [
+                    { text: "5 anos.", correct: true },
+                    { text: "3 anos.", correct: false },
+					{ text: "2 anos.", correct: false }
+                ]
+            },
+			{
+                question: "Nos termos da legislação em vigor, é considerado crime a condução com uma taxa de álcool no sangue igual ou superior a:",
+                answers: [
+                    { text: "0,40 g/l", correct: false },
+                    { text: "0,80 g/l", correct: false },
+					{ text: "1,20 g/l", correct: true }
+                ]
+            },
+			{
+                question: "Um dos efeitos do álcool no condutor é o aumento:",
+                answers: [
+                    { text: "Da capacidade de reação.", correct: false },
+                    { text: "Do tempo de reação.", correct: true }
+                ]
+            },
+			{
+                question: "A condução com uma taxa de alcoolémia igual ou superior a 1,20 g/l é considerada:",
+                answers: [
+                    { text: "Uma contra ordenação grave.", correct: false },
+                    { text: "Um ilícito criminal.", correct: true },
+					{ text: "Uma desobediência qualificada.", correct: false }
+                ]
+            },
+			{
+                question: "Um condutor ecológico:",
+                answers: [
+                    { text: "Engrena mudanças mais baixas para diminuir a rotação do motor.", correct: false },
+                    { text: "Desembraia o veículo nas descidas de inclinação acentuada.", correct: true },
+					{ text: "Conduz com velocidade mais constante, evitando acelerações e travagens bruscas.", correct: false }
+                ]
+            },
+			{
+                question: "O condutor de um veículo pode atravessar uma passagem de nível:",
+                answers: [
+                    { text: "Após se certificar de que a intensidade do trânsito não obriga à imobilização do veículo sobre a passagem de nível, ainda que a sinalização lhe permita o atravessamento.", correct: true },
+                    { text: "Após verificar que, apesar da aproximação de um comboio, ainda dispõe de tempo suficiente para efetuar o atravessamento da passagem.", correct: false },
+					{ text: "Após verificar que os meios de proteção não estão atravessados na via publica, embora a intensidade do trafego possa dar origem a ter que parar sobre a passagem de nível.", correct: false }
+                ]
+            },
+			{
+                question: "Considera-se sob a influência do álcool, o motorista de táxi que apresente uma taxa de álcool no sangue igual ou superior a:",
+                answers: [
+                    { text: "1,2 g/l.", correct: false },
+                    { text: "0,8 g/l.", correct: true },
+					{ text: "0,2 g/l.", correct: false },
+					{ text: "Todas as respostas estão certas.", correct: true }
+                ]
+            },
+			{
+                question: "Se precisar de utilizar o telemóvel, deve:",
+                answers: [
+                    { text: "Reduzir a velocidade.", correct: false },
+                    { text: "Passar para a via de trânsito da direita.", correct: false },
+					{ text: "Estacionar devidamente o veículo.", correct: true }
+                ]
+            },
+			{
+                question: "A luz amarela constante do sinal luminoso antecede a luz:",
+                answers: [
+                    { text: "Vermelha.", correct: true },
+                    { text: "Verde.", correct: false },
+					{ text: "Amarela intermitente.", correct: false }
+                ]
+            },
+						{
+                question: "Regra geral, numa localidade a velocidade máxima permitida é:",
+                answers: [
+                    { text: "60Km/h.", correct: false },
+                    { text: "50Km/h.", correct: true },
+					{ text: "40km/h.", correct: false }
+                ]
+            },
+			{
+                question: "A que distância deve estar bem visível o triângulo de pré-sinalização de perigo?",
+                answers: [
+                    { text: "A pelo menos, 150 metros.", correct: false },
+                    { text: "A pelo menos, 100 metros.", correct: true },
+					{ text: "A pelo menos, 50 metros.", correct: false }
+                ]
+            },
+			{
+                question: "Uma das formas de praticar uma condução mais ecológica é:",
+                answers: [
+                    { text: "Verificar regularmente a pressão dos pneus.", correct: false },
+                    { text: "Não conduzir com pesos desnecessários no veículo.", correct: false },
+					{ text: "Conduzir com o veículo desembraiado nas descidas ingremes.", correct: false },
+					{ text: "As afirmações a) e b) estão corretas.", correct: true }
+                ]
+            },
+			{
+                question: "O condutor contribui para uma maior proteção do ambiente:",
+                answers: [
+                    { text: "Utilizando o ar condicionado só em situações de necessidade.", correct: true },
+                    { text: "Usando sempre a relação de caixa de velocidades o mais alto possível, independentemente da velocidade a que circular.", correct: false },
+					{ text: "Fazendo uso de acessórios que provoquem o aumento da resistência aerodinâmica do veículo.", correct: false }
+                ]
+            },
+			{
+                question: "Quais são os benefícios da prática generalizada da eco condução?",
+                answers: [
+                    { text: "Contribui para o aumento da emissão de gases com efeito de estufa para o arrefecimento global da atmosfera.", correct: false },
+                    { text: "Leva a um aumento significativo do número de veículos em circulação.", correct: false },
+					{ text: "Contribui para o aumento do uso de energias renováveis no uso dos transportes rodoviários.", correct: true }
+                ]
+            },
+			{
+                question: "Um condutor que apresente resultado positivo no exame de pesquisa de álcool no ar expirado, mediante a utilização de aparelho aprovado para o efeito, fica impedido de conduzir pelo período de:",
+                answers: [
+                    { text: "6 horas.", correct: false },
+                    { text: "8 horas.", correct: false },
+					{ text: "12 horas.", correct: true }
+                ]
+            },
+			{
+                question: "Um condutor ecológico deve:",
+                answers: [
+                    { text: "Evitar colocar muita bagagem no porta bagagens.", correct: false },
+                    { text: "Evitar conduzir veículos com motores híbridos.", correct: false },
+					{ text: "Evitar usar o ar condicionado do veículo, especialmente em percursos curtos.", correct: false },
+					{ text: "As afirmações de R: a) e R: c) estão corretas.", correct: true }
+                ]
+            },
+			{
+                question: "Um aumento de 10% na velocidade pode provocar um aumento de 15% no consumo de combustível.",
+                answers: [
+                    { text: "A afirmação é verdadeira.", correct: true },
+                    { text: "A afirmação é falsa.", correct: false }
+                ]
+            },
+			{
+                question: "A eco condução é uma forma de condução eficiente, menos poluente e mais segura.",
+                answers: [
+                    { text: "A afirmação é verdadeira.", correct: true },
+                    { text: "A afirmação é falsa.", correct: false }
+                ]
+            },
+			{
+                question: "Quais são as vantagens da prática de uma eco condução?",
+                answers: [
+                    { text: "Contribui para a diminuição do nível de dióxido de carbono na atmosfera e de outros gases com efeito de estufa.", correct: false },
+                    { text: "Aumenta o conforto dos ocupantes do veículo.", correct: false },
+					{ text: "Contribui para uma menor poluição sonora.", correct: false },
+					{ text: "Todas as afirmações anteriores são verdadeiras.", correct: true }
+                ]
+            },
+			{
+                question: "A prática da eco condução contribui para:",
+                answers: [
+                    { text: "A otimização do consumo de combustível e a redução da poluição ambiental.", correct: false },
+                    { text: "O aumento da sinistralidade rodoviária, embora possa causar embaraço no trânsito.", correct: false },
+					{ text: "Um melhor planeamento das viagens, de forma a evitar os congestionamentos de trânsito.", correct: false },
+					{ text: "As afirmações de a) e c) estão corretas.", correct: true }
+                ]
+            },
+			{
+                question: "Um condutor faz uma condução ecológica, se ao conduzir a uma determinada velocidade:",
+                answers: [
+                    { text: "Utilizar uma rotação constante do motor, engrenando a mudança adequada a esta rotação.", correct: true },
+                    { text: "Utilizar uma rotação do motor alta, engrenando mudanças mais baixas.", correct: false },
+					{ text: "Utilizar uma rotação do motor baixa, engrenando mudanças mais altas.", correct: false }
+                ]
+            },
+			{
+                question: "Como deve proceder o condutor em descidas de inclinação acentuada?",
+                answers: [
+                    { text: "Deve colocar o veículo em ponto morto, de forma a manter o motor liberto.", correct: false },
+                    { text: "Deve manter o veículo engrenado numa mudança compatível, ajudando a travagem com o motor.", correct: true },
+					{ text: "Nenhuma das afirmações está correta.", correct: false }
+                ]
+            },
+			{
+                question: "A prática da eco condução também contribui para a diminuição da sinistralidade rodoviária?",
+                answers: [
+                    { text: "Sim, contribui.", correct: true },
+                    { text: "Não, apenas contribui para a redução do consumo de combustível e da poluição ambiental.", correct: false },
+					{ text: "Não, apenas contribui para a diminuição das emissões de gases com efeito de estufa.", correct: false }
+                ]
+            },
+			{
+                question: "O que é o consumo médio de um veículo?",
+                answers: [
+                    { text: "É o volume final consumido, em litros, após percorrida uma certa distância.", correct: false },
+                    { text: "É o volume de combustível, em litros, dividido pela distância percorrida, em km.", correct: true },
+					{ text: "É a medida do consumo num determinado instante de tempo.", correct: false }
+                ]
+            },
+			{
+                question: "Para que serve o conta-rotações?",
+                answers: [
+                    { text: "Para controlar a velocidade do motor.", correct: false },
+                    { text: "Para indicar a rotação do motor do veículo.", correct: false },
+					{ text: "Ambas as afirmações são verdadeiras.", correct: true }
+                ]
+            },
+			{
+                question: "A correta pressão dos pneus contribui para uma condução mais económica?",
+                answers: [
+                    { text: "Sim, contribui.", correct: true },
+                    { text: "Não, apenas contribui para uma melhor estabilidade do veículo.", correct: false },
+					{ text: "Não, apenas contribui para a manutenção do sistema de suspensão do veículo.", correct: false }
+                ]
+            },
+						{
+                question: "Entende-se por 'condução defensiva':",
+                answers: [
+                    { text: "Não efetuar ultrapassagens em vias com duas vias de trânsito.", correct: false },
+                    { text: "Conduzir de forma a prevenir, evitar e não provocar acidentes, sejam quais forem as condições de circulação, da via, do veículo e meteorológicas e quaisquer que sejam os comportamentos dos outros utentes da via.", correct: true },
+					{ text: "Efetuar constantes travagens.", correct: false }
+                ]
+            },
+			{
+                question: "O veículo deve ser apreendido numa ação de fiscalização, sempre que:",
+                answers: [
+                    { text: "Sejam desrespeitadas as regras relativas à poluição sonora do solo e do ar.", correct: false },
+                    { text: "Não tenha sido efetuado o seguro de responsabilidade civil nos termos da lei.", correct: false },
+					{ text: "Se suspeite de viciação fraudulenta no documento de identificação do veículo.", correct: true }
+                ]
+            },
+			{
+                question: "A segurança rodoviária depende:",
+                answers: [
+                    { text: "Exclusivamente da sinalização.", correct: false },
+                    { text: "Unicamente do comportamento do utente, enquanto peão.", correct: false },
+					{ text: "Do equilíbrio que deve existir entre vários elementos que fazem parte do sistema de circulação.", correct: true }
+                ]
+            },
+			{
+                question: "O acidente continua a ter como principal causa:",
+                answers: [
+                    { text: "A má sinalização de obras na via pública.", correct: false },
+                    { text: "A falha humana, pela não adaptação às condições do ambiente rodoviário.", correct: true },
+					{ text: "Os limites de velocidade impostos quando existem obras no pavimento.", correct: false }
+                ]
+            },
+			{
+                question: "A avaliação que cada condutor faz de uma situação, depende muito da sua experiência na condução.",
+                answers: [
+                    { text: "Certo.", correct: true },
+                    { text: "Errado.", correct: false }
+                ]
+            },
+			{
+                question: "Se aumentar a velocidade, a distância de segurança, deve:",
+                answers: [
+                    { text: "Aumentar.", correct: true },
+                    { text: "Diminuir.", correct: false },
+					{ text: "Manter-se.", correct: false }
+                ]
+            },
+			{
+                question: "A distância de travagem varia com:",
+                answers: [
+                    { text: "As condições atmosféricas.", correct: true },
+                    { text: "A largura da via.", correct: false },
+					{ text: "A sinalização vertical existente no local.", correct: false }
+                ]
+            },
+			{
+                question: "Conduzir com chuva tem como resultado:",
+                answers: [
+                    { text: "O aumento de aderência ao piso.", correct: false },
+                    { text: "A diminuição da distância de paragem.", correct: false },
+					{ text: "A redução da visibilidade.", correct: true }
+                ]
+            },
+			{
+                question: "A condução sob a influência do álcool provoca no condutor:",
+                answers: [
+                    { text: "O aumento do tempo de reação.", correct: true },
+                    { text: "A diminuição do tempo de reação.", correct: false },
+					{ text: "O aumento dos seus reflexos.", correct: false }
+                ]
+            },
+			{
+                question: "A capacidade de prever e antecipar enquanto condutor defensivo aumenta:",
+                answers: [
+                    { text: "Com a idade.", correct: false },
+                    { text: "Com a experiência de condução.", correct: true }
+                ]
+            },
+			{
+                question: "Dos seguintes fatores, qual considera mais importante na prevenção de acidentes rodoviários?",
+                answers: [
+                    { text: "Ter um automóvel novo.", correct: false },
+                    { text: "Obter a carta de condução em idade avançada.", correct: false },
+					{ text: "Praticar uma condução defensiva.", correct: true }
+                ]
+            },
+			{
+                question: "Se a velocidade aumentar, a distância de segurança:",
+                answers: [
+                    { text: "Não se altera.", correct: false },
+                    { text: "Deve ser menor.", correct: false },
+					{ text: "Deve também aumentar.", correct: true }
+                ]
+            },
+			{
+                question: "Um dos efeitos da fadiga na condução traduz-se na diminuição:",
+                answers: [
+                    { text: "Da rapidez dos reflexos.", correct: true },
+                    { text: "Do tempo de reação.", correct: false },
+					{ text: "Da distância de paragem.", correct: false }
+                ]
+            },
+			{
+                question: "Numa viagem longa, para evitar a fadiga, é aconselhável:",
+                answers: [
+                    { text: "Fumar e ouvir musica muito alta.", correct: false },
+                    { text: "Parar, sair do veículo e descansar.", correct: true },
+					{ text: "Aumentar a velocidade.", correct: false }
+                ]
+            },
+			{
+                question: "Numa viagem longa é aconselhável o condutor descansar:",
+                answers: [
+                    { text: "Apenas de 5 em 5 horas.", correct: false },
+                    { text: "De 2 em 2 horas.", correct: true },
+					{ text: "Só depois de ter percorrido os primeiros 500 km/h.", correct: false }
+                ]
+            },
+			{
+                question: "Regra geral, um condutor distraído tem:",
+                answers: [
+                    { text: "Um tempo de reação mais reduzido.", correct: false },
+                    { text: "Um tempo de reação mais longo.", correct: true },
+					{ text: "O mesmo tempo de reação que qualquer outro condutor.", correct: false }
+                ]
+            },
+			{
+                question: "A ingestão de bebidas alcoólicas:",
+                answers: [
+                    { text: "Diminui o campo visual.", correct: true },
+                    { text: "Alarga o campo visual.", correct: false },
+					{ text: "Não afeta o campo visual.", correct: false }
+                ]
+            },
+						{
+                question: "Após ingerir bebidas alcoólicas, os obstáculos que o condutor avista à sua frente na via pública, parecem-lhe:",
+                answers: [
+                    { text: "Mais próximos.", correct: false },
+                    { text: "Mais longe.", correct: true },
+					{ text: "À distância real.", correct: false }
+                ]
+            },
+			{
+                question: "Dos seguintes combustíveis, qual é o menos poluente?",
+                answers: [
+                    { text: "Gasolina sem chumbo.", correct: false },
+                    { text: "Gás.", correct: true },
+					{ text: "Gasolina com chumbo.", correct: false }
+                ]
+            },
+			{
+                question: "A publicidade no tejadilho dos táxis pode ser afixada, de acordo com as seguintes normas:",
+                answers: [
+                    { text: "Em dísticos de material autocolante, diretamente no tejadilho.", correct: false },
+                    { text: "Num painel destinado à afixação dos dísticos de material autocolante, com altura máxima de 520 mm entre o tejadilho e o limite máximo do painel.", correct: true },
+					{ text: "um painel destinado à afixação dos dísticos de material autocolante, com altura máxima de 750 mm entre o tejadilho e o limite máximo do painel.", correct: false }
+                ]
+            },
+			{
+                question: "A publicidade no tejadilho dos táxis pode ser afixada, de acordo com as seguintes normas:",
+                answers: [
+                    { text: "Em dísticos de material autocolante, diretamente no tejadilho.", correct: false },
+                    { text: "Num painel destinado à afixação dos dísticos de material autocolante, com a altura máxima de 520 mm entre o tejadilho e o limite máximo do painel.", correct: true },
+					{ text: "Num painel destinado à afixação dos dísticos de material autocolante, com a altura máxima de 1000 mm entre o tejadilho e o limite máximo do painel.", correct: false }
+                ]
+            },
+			{
+                question: "A responsabilidade pela inscrição dos trabalhadores no regime de Segurança Social recai sobre:",
+                answers: [
+                    { text: "A comissão de trabalhadores.", correct: false },
+                    { text: "As organizações sindicais.", correct: false },
+					{ text: "A entidade empregadora.", correct: true }
+                ]
+            },
+			{
+                question: "O recibo comprovativo do valor total pago pela prestação de um serviço de transporte em táxi deve conter, obrigatoriamente:",
+                answers: [
+                    { text: "O local de início e fim do percurso.", correct: false },
+                    { text: "O local de início e fim do percurso e a data e hora da sua realização.", correct: false },
+					{ text: "O nome e morada do proprietário, respetivo número de contribuinte e a matrícula do veículo.", correct: true }
+                ]
+            },
+			{
+                question: "O recibo comprovativo do valor total pago pela prestação de um serviço de transporte em táxi deve conter, obrigatoriamente:",
+                answers: [
+                    { text: "O nome e morada do proprietário, respetivo número de contribuinte e a matrícula do veículo.", correct: true },
+                    { text: "O local de início e fim do percurso e a data e hora da sua realização.", correct: false },
+					{ text: "Somente o nome do proprietário, e a matrícula do veículo.", correct: false }
+                ]
+            },
+			{
+                question: "Numa prestação de serviço em táxi, o transporte de volumes de pequenas dimensões:",
+                answers: [
+                    { text: "Está incluído no contrato de prestação do serviço de transporte, desde que não ultrapasse a dimensão de 55x35x20 cm.", correct: true },
+                    { text: "Está dependente de contrato adicional.", correct: false },
+					{ text: "Fica ao livre arbítrio do motorista.", correct: false }
+                ]
+            },
+			{
+                question: "Considera-se transportador em táxi a empresa que:",
+                answers: [
+                    { text: "Só transporta pessoas.", correct: false },
+                    { text: "Efetua transporte internacional de passageiros.", correct: false },
+					{ text: "Está habilitada com alvará para a atividade de transportes em táxi.", correct: true }
+                ]
+            },
+			{
+                question: "Para efeitos de prestação de serviço de transporte em táxi, a pessoa singular ou coletiva (empresa) deve estar habilitada com:",
+                answers: [
+                    { text: "Alvará e licença do veículo.", correct: true },
+                    { text: "Apenas o alvará.", correct: false },
+					{ text: "Licença do veículo.", correct: false }
+                ]
+            },
+			{
+                question: "As empresas de transporte em táxi devem comunicar ao IMT as alterações ao pacto social (alterações na administração), por exemplo: ",
+                answers: [
+                    { text: "No prazo de 8 dias.", correct: false },
+                    { text: "No prazo de 2 anos.", correct: false },
+					{ text: "No prazo de 30 dias a contar da data da sua ocorrência.", correct: true }
+                ]
+            },
+			{
+                question: "A falta superveniente dos requisitos de acesso à atividade deve ser suprida:",
+                answers: [
+                    { text: "No prazo de 1 ano.", correct: true },
+                    { text: "No prazo de 2 anos.", correct: false },
+					{ text: "No prazo de 6 meses.", correct: false }
+                ]
+            },
+			{
+                question: "Para o exercício da atividade em táxi, os veículos não podem exceder as seguintes lotações:",
+                answers: [
+                    { text: "4 lugares incluindo o condutor.", correct: false },
+                    { text: "6 lugares, incluindo o condutor.", correct: false },
+					{ text: "9 lugares incluindo o condutor.", correct: true }
+                ]
+            },
+			{
+                question: "A licença do táxi caduca quando:",
+                answers: [
+                    { text: "O veículo não se apresenta pintado com as cores exigidas.", correct: false },
+                    { text: "O motorista não é detentor do certificado de motorista de táxi.", correct: false },
+					{ text: "O alvará não é renovado ou se verifica o abandono da atividade.", correct: true }
+                ]
+            },
+			{
+                question: "A fixação do contingente de licenças de táxi pode ocorrer:",
+                answers: [
+                    { text: "Sempre que o Município o decidir.", correct: false },
+                    { text: "Com uma periodicidade não inferior a 2 anos.", correct: true },
+					{ text: "De 5 em 5 anos.", correct: false }
+                ]
+            },
+			{
+                question: "A condução do táxi em serviço por pessoa que não seja titular do Certificado de Motorista de Táxi, está sujeita a uma coima mais elevada no caso de:",
+                answers: [
+                    { text: "O motorista não ter contrato de trabalho.", correct: false },
+                    { text: "O motorista ser também o titular da licença do veículo.", correct: true },
+					{ text: "O motorista ter mais de 60 anos de idade.", correct: false }
+                ]
+            },
+			{
+                question: "As empresas de transporte em táxi devem comunicar ao IMT as alterações ao pacto social (mudança de sede, por exemplo).",
+                answers: [
+                    { text: "No prazo de 30 dias a contar da sua ocorrência.", correct: false },
+                    { text: "No prazo de 48 horas.", correct: true },
+					{ text: "Sem prazo fixado.", correct: false }
+                ]
+            },
+						{
+                question: "A licença do táxi deixa de ter validade, quando:",
+                answers: [
+                    { text: "O veículo não está pintado com as cores exigidas.", correct: false },
+                    { text: "O motorista não é detentor do certificado de aptidão profissional.", correct: false },
+					{ text: "O veículo não dispuser de taxímetro estiver carregado.", correct: false },
+					{ text: "Quando licença não for revalidada", correct: true }
+                ]
+            },
+			{
+                question: "A fixação do número de lugares no contingente, para efeitos de atribuição das licenças dos táxis , pode ocorrer:",
+                answers: [
+                    { text: "De cinco em cinco anos.", correct: false },
+                    { text: "Sempre que o município decidir aumentar o contingente.", correct: false },
+					{ text: "Com uma periodicidade não inferior a 2 anos.", correct: true }
+                ]
+            },
+			{
+                question: "O número da licença do táxi é atribuída:",
+                answers: [
+                    { text: "Pelo Instituto da Mobilidade e dos Transportes.", correct: false },
+                    { text: "Pela Câmara Municipal respetiva.", correct: true },
+					{ text: "Pela Autoridade Nacional de Segurança Rodoviária.", correct: false }
+                ]
+            },
+			{
+                question: "A contratação de um serviço de transporte em táxi por um período superior a 30 dias, vincula o transportador à elaboração de um contrato escrito no qual constará obrigatoriamente:",
+                answers: [
+                    { text: "O percurso e o preço.", correct: false },
+                    { text: "A identificação do transportador e do cliente.", correct: false },
+					{ text: "O prazo, a identificação das partes e o preço acordado.", correct: true }
+                ]
+            },
+			{
+                question: "No regime de estacionamento fixo, os táxis:",
+                answers: [
+                    { text: "Podem estacionar em qualquer lugar destinado a táxis.", correct: false },
+                    { text: "Podem circular livremente à disposição do público.", correct: false },
+					{ text: "Devem estacionar no local constante da licença.", correct: true }
+                ]
+            },
+			{
+                question: "A fixação dos regimes de estacionamento dos táxis é da competência:",
+                answers: [
+                    { text: "Da Autoridade Nacional de Segurança Rodoviária.", correct: false },
+                    { text: "Do Instituto da Mobilidade e dos Transportes.", correct: false },
+					{ text: "Das Câmaras Municipais.", correct: true }
+                ]
+            },
+			{
+                question: "Nos transportes em táxi, podem ser utilizados automóveis ligeiros de passageiros matriculados:",
+                answers: [
+                    { text: "Em qualquer país da União Europeia.", correct: false },
+                    { text: "Em qualquer país da Europa.", correct: false },
+					{ text: "Em Portugal.", correct: true }
+                ]
+            },
+			{
+                question: "Os preços de transporte em táxi, consoante o tipo de serviço, são:",
+                answers: [
+                    { text: "Livremente estabelecidos pelos empresários.", correct: false },
+                    { text: "Fixados anualmente pelos municípios.", correct: true },
+					{ text: "Fixados anualmente, por convenção negociada entre representantes do setor e a Administração Pública.", correct: false }
+                ]
+            },
+			{
+                question: "Nos táxis podem ser afixadas mensagens de publicidade nos seguintes locais:",
+                answers: [
+                    { text: "Nos guarda-lamas da retaguarda e portas laterais, excluídos os vidros ou o tejadilho.", correct: true },
+                    { text: "Em toda a caixa do veículo. No para-brisas da frente. ", correct: false }
+                ]
+            },
+			{
+                question: "O alvará para exercício de atividade de transportes em táxi obtêm-se mediante prova:",
+                answers: [
+                    { text: "Dos requisitos de capacidade financeira e idoneidade.", correct: false },
+                    { text: "De que o veículo está registado em seu nome.", correct: false },
+					{ text: "Dos requisitos de idoneidade, capacidade profissional e financeira.", correct: false },
+					{ text: "Do requisito de capacidade financeira.", correct: true }
+                ]
+            },
+			{
+                question: "O alvará para exercício de atividade, emitido por um prazo não superior a 5 anos, pode ser renovado por iguais períodos:",
+                answers: [
+                    { text: "Sempre que for pedida a sua renovação, sem qualquer condição.", correct: false },
+                    { text: "Desde que se faça prova de que se mantêm os requisitos de acesso à atividade.", correct: true },
+					{ text: "Desde que a pessoa faça prova de que mantêm os requisitos de capacidade profissional e idoneidade.", correct: false }
+                ]
+            },
+			{
+                question: "Podem ter acesso ao certificado de motorista de táxi as pessoas que, entre outros requisitos, demonstrem:",
+                answers: [
+                    { text: "Ter idoneidade e capacidade financeira. ", correct: false },
+                    { text: "Ter capacidade financeira e um veículo licenciado.", correct: false },
+					{ text: "Ter capacidade profissional e a escolaridade obrigatória.", correct: false },
+					{ text: "Não ser considerado inidóneo.", correct: true }
+                ]
+            },
+			{
+                question: "As licenças para os veículos a utilizar nos transportes em táxi são atribuídas:",
+                answers: [
+                    { text: "Pelo Instituto da Mobilidade e dos Transportes mediante requerimento do interessado.", correct: false },
+                    { text: "Pelas Câmaras Municipais, mediante concurso publico.", correct: true },
+					{ text: "Pelas Câmaras Municipais, em leilão.", correct: false },
+					{ text: "Pela ANSR.", correct: false }
+                ]
+            },
+			{
+                question: "Para além das características próprias, todos os táxis licenciados devem estar equipados com: ",
+                answers: [
+                    { text: "Taxímetro, dispositivo luminoso e distintivo identificador da licença.", correct: true },
+                    { text: "Sistema de pagamento automático, taxímetro e dispositivo luminoso.", correct: false },
+					{ text: "Dispositivo identificador da licença.", correct: false }
+                ]
+            },
+			{
+                question: "O dístico de aferição dos taxímetros deve ser emitido e colocado:",
+                answers: [
+                    { text: "Anualmente pela entidade aferidora e colocado num dos vidros do veículo.", correct: false },
+                    { text: "Anualmente pela entidade aferidora e colocado na parte superior direita do vidro da frente do veículo.", correct: true },
+					{ text: "Sempre que a entidade aferidora o entender e colocado no vidro da frente do veículo.", correct: false }
+                ]
+            },
+			{
+                question: "Um dos deveres do motorista de táxi é a emissão de recibo que, para além do valor do serviço prestado, deve conter os seguintes elementos:",
+                answers: [
+                    { text: "Identificação da empresa, endereço, número de contribuinte, matrícula do veículo, data e assinatura do motorista.", correct: true },
+                    { text: "Numero do certificado de aptidão profissional do motorista, endereço e matrícula do veículo.", correct: false },
+					{ text: "Nome do motorista e número do CAP.", correct: false }
+                ]
+            },
+			{
+                question: "O aparelho de medição de tempo e distância que equipa os táxis, denomina-se: ",
+                answers: [
+                    { text: "Tacógrafo.", correct: false },
+                    { text: "Taxímetro.", correct: true },
+					{ text: "Conta-quilómetros.", correct: false }
+                ]
+            },
+						{
+                question: "A CMT de motorista de táxi, de idade igual ou superior a 65 anos deve ser revalidada:",
+                answers: [
+                    { text: "De dois em dois anos.", correct: true },
+                    { text: "Anualmente.", correct: false },
+					{ text: "De 5 em 5 anos.", correct: false }
+                ]
+            },
+			{
+                question: "O motorista de táxi:",
+                answers: [
+                    { text: "Pode recusar um serviço desde que seja a menos de 2km do destino.", correct: false },
+                    { text: "Pode recusar um serviço desde que tenha que acionar o taxímetro.", correct: false },
+					{ text: "Não pode recusar um serviço solicitado desde que abrangido pela regulamentação aplicável ao exercício de atividade. ", correct: true }
+                ]
+            },
+			{
+                question: "Regra geral, o limite máximo do período de trabalho normal semanal a que o trabalhador se pode obrigar a prestar é: ",
+                answers: [
+                    { text: "36 horas.", correct: false },
+                    { text: "40 horas.", correct: true },
+					{ text: "48 horas.", correct: false }
+                ]
+            },
+			{
+                question: "Regra geral, o período de férias é marcado:",
+                answers: [
+                    { text: "De acordo entre empregador e trabalhador.", correct: true },
+                    { text: "Pelo trabalhador.", correct: false },
+					{ text: "Pelo empregador.", correct: false }
+                ]
+            },
+			{
+                question: "O gozo do período de férias pode ser interpolado, por acordo entre o empregador e o trabalhador, desde que sejam gozados, no mínimo:",
+                answers: [
+                    { text: "8 dias úteis consecutivos.", correct: false },
+                    { text: "12 dias úteis consecutivos.", correct: false },
+					{ text: "10 dias úteis consecutivos.", correct: true },
+					{ text: "Pela Comissão de Trabalhadores.", correct: false }
+                ]
+            },
+			{
+                question: "Num contrato de trabalho, o horário de trabalho é determinado:",
+                answers: [
+                    { text: "Por acordo entre o trabalhador e o empregador.", correct: false },
+                    { text: "Pelo trabalhador.", correct: false },
+					{ text: "Pelo empregador. ", correct: true }
+                ]
+            },
+			{
+                question: "São consideradas faltas injustificadas:",
+                answers: [
+                    { text: "As dadas, durante 15 dias seguidos, por altura do casamento.", correct: false },
+                    { text: "As dadas durante 10 dias consecutivos, por falecimento do cônjuge não separado de pessoas e bens.", correct: true },
+					{ text: "As dadas por quem goze do estatuto de trabalhador-estudante, no dia da prova.", correct: false }
+                ]
+            },
+			{
+                question: "O direito a um período de férias remuneradas vence-se:",
+                answers: [
+                    { text: "A 31 de dezembro.", correct: false },
+                    { text: "A 1 de janeiro.", correct: true },
+					{ text: "A 15 de abril.", correct: false }
+                ]
+            },
+			{
+                question: "A ausência do trabalhador do local de trabalho, por motivo de doença:",
+                answers: [
+                    { text: "É considerada falta injustificada.", correct: false },
+                    { text: "É considerada falta justificada.", correct: true },
+					{ text: "Não é considerada falta.", correct: false }
+                ]
+            },
+			{
+                question: "Considera-se trabalho noturno, o prestado num período que tenha a duração mínima de sete horas e máxima de onze horas, compreendendo o intervalo entre:",
+                answers: [
+                    { text: "As 00,00 horas e as 5,00 da manhã.", correct: true },
+                    { text: "Todo o período da noite.", correct: false },
+					{ text: "Das 23,00 horas às 7,00 do dia seguinte.", correct: false }
+                ]
+            },
+			{
+                question: "Durante o período de férias a retribuição do trabalhador por conta de outrem corresponde:",
+                answers: [
+                    { text: "A uma retribuição igual à que receberia se estivesse a trabalhar, acrescida de um montante igual a essa retribuição.", correct: true },
+                    { text: "Apenas ao montante do seu vencimento mensal.", correct: false },
+					{ text: "Ao vencimento mensal, descontados os dias de férias.", correct: false }
+                ]
+            },
+			{
+                question: "Regra geral, o período de férias é marcado:",
+                answers: [
+                    { text: "Por acordo entre o trabalhador e o empregador.", correct: true },
+                    { text: "Pelo trabalhador.", correct: false },
+					{ text: "Pela Comissão de trabalhadores.", correct: false }
+                ]
+            },
+			{
+                question: "São consideradas faltas injustificadas:",
+                answers: [
+                    { text: "As dadas, durante 15 dias seguidos, por altura do casamento.", correct: false },
+                    { text: "As dadas durante 20 dias consecutivos, por falecimento do cônjuge não separado de pessoas e bens.", correct: true },
+					{ text: "As dadas por quem goze do estatuto de trabalhador-estudante, no dia da prova.", correct: false }
+                ]
+            },
+			{
+                question: "O trabalhador ou candidato a emprego tem direito a igualdade de oportunidades e de tratamento em matéria de:",
+                answers: [
+                    { text: "Critérios de seleção e condições de contratação.", correct: false },
+                    { text: "Acesso a todos os tipos de orientação, formação e reconversão profissional.", correct: false },
+					{ text: "Todas as anteriores respostas são verdadeiras.", correct: true }
+                ]
+            },
+			{
+                question: "De acordo com o Código do Trabalho, a mãe e o pai trabalhadores tem direito, por nascimento de filho, a licença parental inicial de:",
+                answers: [
+                    { text: "120 ou 150 dias consecutivos.", correct: true },
+                    { text: "5 dias úteis seguidos, obrigatoriamente gozados na primeira semana a seguir ao nascimento do filho.", correct: false },
+					{ text: "Ao acréscimo de mais trinta dias aos 120 ou 150, no caso de cada um dos progenitores gozar, em exclusivo, um período de 60 dias consecutivos, ou dois períodos de 15 dias consecutivos.", correct: false }
+                ]
+            },
+			{
+                question: "O trabalhador deve:",
+                answers: [
+                    { text: "Desrespeitar e tratar o empregador, os superiores hierárquicos, os companheiros de trabalho e as pessoas que se relacionem com a empresa, com urbanidade e probidade.", correct: false },
+                    { text: "Comparecer ao serviço com assiduidade e pontualidade.", correct: true },
+					{ text: "Realizar o trabalho de forma descuidada e sem grande esforço.", correct: false }
+                ]
+            },
+			{
+                question: "O trabalhador deve:",
+                answers: [
+                    { text: "Desrespeitar e tratar o empregador, os superiores hierárquicos, os companheiros de trabalho e as pessoas que se relacionem com a empresa, com urbanidade e probidade.", correct: false },
+                    { text: "Cumprir as ordens e instruções do empregador respeitantes á execução ou disciplina do trabalho, bem como a segurança e saúde no trabalho, que não sejam contrárias aos seus direitos ou garantias.", correct: true },
+					{ text: "Realizar o trabalho de forma descuidada e sem grande esforço.", correct: false }
+                ]
+            },
+						{
+                question: "É proibido ao empregador:",
+                answers: [
+                    { text: "Despedir, aplicar outra sanção, ou trata-lo desfavoravelmente em virtude de o trabalhador ter exercido os seus direitos.", correct: true },
+                    { text: "Mudar o trabalhador para categoria inferior.", correct: false },
+					{ text: "Diminuir a retribuição.", correct: false }
+                ]
+            },
+						{
+                question: "Qual o limite máximo do período normal de trabalho?",
+                answers: [
+                    { text: "Oito horas por dia e quarenta horas por semana.", correct: true },
+                    { text: "Nove horas por dia e quarenta e cinco horas por semana.", correct: false },
+					{ text: "Sete horas por dia e quarenta e duas horas por semana.", correct: false }
+                ]
+            },
+						{
+                question: "Qual o limite máximo do período normal de trabalho?",
+                answers: [
+                    { text: "Nove horas por dia e quarenta e cinco horas por semana.", correct: false },
+                    { text: "Pode ser aumentado em 4 horas diárias se o trabalhador prestar trabalho exclusivamente em dias de descanso semanal.", correct: true },
+					{ text: "Sete horas por dia e quarenta e duas horas por semana.", correct: false }
+                ]
+            },
+						{
+                question: "O que se entende por horário de trabalho?",
+                answers: [
+                    { text: "A determinação das horas de início e termo do período normal de trabalho diário e do intervalo de descanso, bem como do descanso semanal.", correct: true },
+                    { text: "A determinação das horas de início e termo do período normal de trabalho diário e do intervalo de descanso.", correct: false },
+					{ text: "A determinação das horas de início e termo do período normal de trabalho diário, bem como do descanso semanal.", correct: false }
+                ]
+            },
+						{
+                question: "Qual o período de descanso a que o trabalhador tem direito?",
+                answers: [
+                    { text: "A um período de descanso de, pelo menos, onze horas seguidas entre dois períodos diários de trabalho consecutivos.", correct: true },
+                    { text: "A um período de descanso de, pelo menos, dez horas seguidas entre dois períodos diários de trabalho consecutivos.", correct: false },
+					{ text: "A um período de descanso de, pelo menos, doze horas seguidas entre dois períodos diários de trabalho consecutivos.", correct: false }
+                ]
+            },
+						{
+                question: "O que entende por trabalho noturno?",
+                answers: [
+                    { text: "O trabalho prestado num período que tenha a duração máxima de nove horas e mínimo de onze horas, compreendendo o intervalo entre as 0 e as 5 horas.", correct: false },
+                    { text: "O trabalho prestado num período que tenha a duração mínima de sete horas e máximo de onze horas, compreendendo o intervalo entre as 0 e as 5 horas.", correct: true },
+					{ text: "Na falta de determinação de instrumento de regulamentação coletiva de trabalho, o compreendido entre as 22 horas de um dia e as 7 horas do dia seguinte.", correct: false },
+					{ text: "Organização do trabalho em equipa em que os trabalhadores ocupámos mesmos postos de trabalho.", correct: true }
+                ]
+            },
+						{
+                question: "O trabalhador tem direito férias:",
+                answers: [
+                    { text: "Em cada ano civil, a um período de férias retribuídas, que se vence em 1 de janeiro.", correct: true },
+                    { text: "Em cada ano civil, a um período de férias não retribuídas, que se vence em 1 de janeiro.", correct: false },
+					{ text: "O trabalhador com contrato a termo não tem direito férias.", correct: false }
+                ]
+            },
+						{
+                question: "O período anual de férias tem a duração mínima de:",
+                answers: [
+                    { text: "22 dias úteis.", correct: true },
+                    { text: "25 dias úteis.", correct: false },
+					{ text: "27 dias seguidos.", correct: false },
+					{ text: "O trabalhador só tem direito a férias se não faltar no ano civil a que as mesmas, digam respeito.", correct: false }
+                ]
+            },
+						{
+                question: "Entende - se por falta:",
+                answers: [
+                    { text: "Ausência de trabalhador do local em que devia desempenhar a atividade durante o período suplementar de trabalho diário.", correct: false },
+                    { text: "Ausência de trabalhador do local em que devia desempenhar a atividade durante o período normal de trabalho diário.", correct: true },
+					{ text: "Ausência de trabalhador do local em que devia desempenhar a atividade durante o horário por turnos.", correct: false },
+					{ text: "Todas as respostas estão certas.", correct: false }
+                ]
+            },
+						{
+                question: "Um motorista de táxi pode sempre não acionar o taxímetro, estabelecendo o valor a pagar pelo cliente.",
+                answers: [
+                    { text: "A afirmação esta correta.", correct: false },
+                    { text: "A afirmação está errada.", correct: true }
+                ]
+            },
+						{
+                question: "Regra geral, a obrigação de segurar o veículo recai sobre:",
+                answers: [
+                    { text: "O proprietário.", correct: true },
+                    { text: "O vendedor.", correct: false },
+					{ text: "O comprador.", correct: false },
+					{ text: "Instituto da Mobilidade e dos Transportes.", correct: false }
+                ]
+            },
+						{
+                question: "Caso o condutor seja envolvido num acidente rodoviário, deve identificar-se:",
+                answers: [
+                    { text: "Só aos agentes de autoridade.", correct: false },
+                    { text: "Apenas se houver feridos.", correct: false },
+					{ text: "Aos envolvidos no acidente e às autoridades.", correct: true }
+                ]
+            },
+						{
+                question: "A profissão de motorista de táxi só pode ser exercida por pessoa:",
+                answers: [
+                    { text: "Com carta de condução de automóveis ligeiros e de pesados.", correct: false },
+                    { text: "Titular de certificado de motorista de táxi.", correct: true },
+					{ text: "Titular de alvará.", correct: false }
+                ]
+            },
+						{
+                question: "Para o exercício da profissão de motorista de táxi é obrigatória a posse de:",
+                answers: [
+                    { text: "Titular de certificado de motorista de táxi.", correct: true },
+                    { text: "Certificado de capacidade financeira.", correct: false },
+					{ text: "Com carta de condução de automóveis ligeiros e de pesados.", correct: false }
+                ]
+            },
+						{
+                question: "O local de colocação do taxímetro situa-se:",
+                answers: [
+                    { text: "Nos lugares da retaguarda junto dos passageiros.", correct: false },
+                    { text: "Na parte inferior do tablier.", correct: false },
+					{ text: "Na metade superior do tablier ou em cima deste, em local bem visível pelos passageiros.", correct: true }
+                ]
+            },
+						{
+                question: "A condução de veículos afetos à atividade de transportes em táxi só pode ser exercida:",
+                answers: [
+                    { text: "Por motoristas com mais de 2 anos de serviço.", correct: false },
+                    { text: "Por pessoa titular de certificado de motorista de táxi.", correct: true },
+					{ text: "Por pessoa titular de carteira profissional de motorista de turismo.", correct: false }
+                ]
+            },
+						{
+                question: "O certificado de motorista de táxi só pode ser obtido por pessoa que, entre outros requisitos, demonstre ter:",
+                answers: [
+                    { text: "Capacidade financeira e um veículo licenciado.", correct: false },
+                    { text: "Carta de condução da categoria B com averbamento da restrição 997 e domínio da língua portuguesa.", correct: true },
+					{ text: "Idoneidade e capacidade profissional.", correct: false }
+                ]
+            },
+						{
+                question: "A condução do táxi em serviço por pessoa que não seja titular do Certificado de aptidão profissional, está sujeita a uma coima mais elevada no caso de:",
+                answers: [
+                    { text: "O motorista ser também o titular da licença do veículo.", correct: true },
+                    { text: "Se verificar nas localidades onde se pratique tarifa urbana.", correct: false },
+					{ text: "O motorista não ter contrato de trabalho.", correct: false }
+                ]
+            },
+						{
+                question: "O certificado de aptidão profissional de motorista de táxi só pode ser obtido por pessoa que, entre outros requisitos, demonstre ter:",
+                answers: [
+                    { text: "Carta de condução da categoria B e domínio da língua portuguesa.", correct: true },
+                    { text: "Idoneidade, capacidade financeira e capacidade profissional.", correct: false },
+					{ text: "Capacidade financeira e um veículo licenciado.", correct: false }
+                ]
+            },
+						{
+                question: "Quando o táxi transportar clientes, o motorista: ",
+                answers: [
+                    { text: "Pode fazer-se acompanhar por quem quiser, além dos passageiros.", correct: false },
+                    { text: "Pode transportar familiares que vão para a mesma área do cliente.", correct: false },
+					{ text: "Não se pode fazer acompanhar por pessoas estranhas ao serviço.", correct: true }
+                ]
+            },
+						{
+                question: "Num táxi, quando um passageiro invisual estiver acompanhado de um cão-guia, o motorista:",
+                answers: [
+                    { text: "Pode sempre recusar transportar o cão guia.", correct: false },
+                    { text: "Deve sempre aceitar o transporte do cão guia.", correct: true },
+					{ text: "Pode aceitar o transporte do cão guia se o invisual vier acompanhado.", correct: false }
+                ]
+            },
+						{
+                question: "O seguro de responsabilidade civil automóvel obrigatório para entre outros veículos, táxis, garante as indemnizações devidas: ",
+                answers: [
+                    { text: "Somente por danos causados a veículos.", correct: false },
+                    { text: "Por danos pessoais e ou materiais causados a terceiros.", correct: true },
+					{ text: "Somente por danos pessoais causados a terceiros.", correct: false }
+                ]
+            },
+						{
+                question: "Num acidente de viação em que haja culpa do motorista, pelos danos que o veículo causar, responde:",
+                answers: [
+                    { text: "Somente o motorista.", correct: false },
+                    { text: "Solidariamente o motorista e o proprietário do veículo se não ele próprio o dono.", correct: false },
+					{ text: "Apenas a companhia de seguros para a qual o proprietário do veículo transferiu a sua responsabilidade.", correct: true }
+                ]
+            },
+						{
+                question: "A reparação dos danos causados por responsável desconhecido ou isento da obrigação do seguro ou por responsável incumpridor da obrigação de seguro de responsabilidade civil automóvel é garantida pelo:",
+                answers: [
+                    { text: "Fundo de Garantia Automóvel.", correct: true },
+                    { text: "Gabinete Português da Carta Verde.", correct: false },
+					{ text: "Instituto de Seguros de Portugal.", correct: false }
+                ]
+            },
+						{
+                question: "O seguro obrigatório de responsabilidade civil automóvel:",
+                answers: [
+                    { text: "Transmite-se sempre com a venda do veículo segurado.", correct: false },
+                    { text: "Só se transmite quando o vendedor der o seu consentimento.", correct: false },
+					{ text: "Não se transmite com a venda do veículo.", correct: true }
+                ]
+            },
+						{
+                question: "Num acidente de viação em que haja culpa do motorista, empregado de uma empresa de táxis, pelos danos que o veículo causar a outrem, responde:",
+                answers: [
+                    { text: "Apenas o motorista.", correct: false },
+                    { text: "Solidariamente o motorista, a empresa de táxis e a companhia de seguros.", correct: true },
+					{ text: "Apenas a companhia de seguros.", correct: false }
+                ]
+            },
+						{
+                question: "O seguro obrigatório de responsabilidade civil automóvel garante as indemnizações devidas:",
+                answers: [
+                    { text: "Somente por danos causados a veículos.", correct: false },
+                    { text: "Por danos pessoais e ou materiais causados a terceiros.", correct: true },
+					{ text: "Somente por danos pessoais causados a terceiros.", correct: false }
+                ]
+            },
+						{
+                question: "Em caso de acidente, a identificação do condutor é obrigatória?",
+                answers: [
+                    { text: "Não, nunca.", correct: false },
+                    { text: "Apenas é obrigatória a identificação do proprietário do veículo.", correct: false },
+					{ text: "Sim, bem como a identificação do proprietário do veículo.", correct: true }
+                ]
+            },
+						{
+                question: "O condutor interveniente em acidente, deve fornecer aos restantes intervenientes a identificação da sua Seguradora e o número da apólice:",
+                answers: [
+                    { text: "Certo.", correct: true },
+                    { text: "Errado.", correct: false }
+                ]
+            },
+						{
+                question: "De forma a prevenir os assaltos, o motorista de táxi deve ter alguns cuidados, tais como:",
+                answers: [
+                    { text: "Quando parar deve retirar a chave de ignição, mesmo que se ausente do veículo, por frações de segundos.", correct: true },
+                    { text: "Fechar o veículo e deixá-lo na praça para ir depositar o dinheiro realizado.", correct: false },
+					{ text: "Em serviço e com clientes, deixar o carro a trabalhar e sair para solicitar informações.", correct: false }
+                ]
+            },
+						{
+                question: "Em situação de perigo o motorista de táxi deve:",
+                answers: [
+                    { text: "Gritar por socorro.", correct: false },
+                    { text: "Confrontar o cliente.", correct: false },
+					{ text: "Acionar os mecanismos de segurança que o veículo possui.", correct: true },
+					{ text: "Ligar o telemóvel.", correct: false }
+                ]
+            },
+						{
+                question: "De entre os vários sistemas de segurança, que os táxis podem usufruir, qual é o obrigatório:",
+                answers: [
+                    { text: "Radiotáxi.", correct: false },
+                    { text: "Videovigilância.", correct: false },
+					{ text: "SOS do dispositivo luminoso.", correct: true },
+					{ text: "Separador. ", correct: false }
+                ]
+            },
+						{
+                question: "Se o veículo em táxi estiver munido do sistema de segurança designado como 'separador', o motorista pode:",
+                answers: [
+                    { text: "Colocar a bagagem no banco da frente.", correct: false },
+                    { text: "Levar só dois passageiros.", correct: false },
+					{ text: "Recusar o transporte de passageiros no lugar ou lugares da frente.", correct: true }
+                ]
+            },
+						{
+                question: "Se o veículo em táxi estiver munido do sistema de segurança, designado como 'videovigilância', que informação deve ser prestada:",
+                answers: [
+                    { text: "Avisar o cliente que está a ser filmado.", correct: false },
+                    { text: "Deve ter em local bem visível o aviso de que o táxi está equipado com o sistema videovigilância.", correct: true },
+					{ text: "Não prestar qualquer informação.", correct: false }
+                ]
+            },
+						{
+                question: "Em caso de assalto, com a utilização de arma de fogo ou arma branca, o motorista de táxi deve:",
+                answers: [
+                    { text: "Reagir sempre, mesmo que ponha em risco a sua vida.", correct: false },
+                    { text: "Não reagir, mas ser prudente.", correct: true },
+					{ text: "Dialogar com os assaltantes.", correct: false }
+                ]
+            },
+						{
+                question: "De forma a prevenir os assaltos, o motorista de táxi deve:",
+                answers: [
+                    { text: "Ter à vista a documentação do veículo.", correct: false },
+                    { text: "Não usar objetos de valor, sobretudo jóias.", correct: true },
+					{ text: "Mostrar que tem GPS.", correct: false }
+                ]
+            },
+						{
+                question: "Na prestação de um serviço, quando o cliente entra e posiciona-se no banco por trás do motorista, quais as precauções que este deve ter:",
+                answers: [
+                    { text: "Manter o contato visual com o cliente, através do espelho retrovisor.", correct: true },
+                    { text: "Prestar o serviço sem se preocupar com o cliente.", correct: false },
+					{ text: "Mostrar-se desconfiado com o cliente.", correct: false },
+					{ text: "Não ter cuidado.", correct: false }
+                ]
+            },
+						{
+                question: "Que tipo de técnicas de defesa pessoal podem ser adotadas nesta atividade:",
+                answers: [
+                    { text: "Técnicas de mãos livres, defesa e ataque com arma branca e ameaça com arma de fogo.", correct: false },
+                    { text: "Não existe uma técnica para esta atividade.", correct: true },
+					{ text: "Técnicas que evitem o pânico.", correct: false }
+                ]
+            },
+						{
+                question: "Perante a iminência de assalto o motorista de táxi deve:",
+                answers: [
+                    { text: "Abandonar o veículo.", correct: false },
+                    { text: "Acionar o SOS.", correct: true },
+					{ text: "Mostrar agressividade para com o passageiro.", correct: false }
+                ]
+            },
+						{
+                question: "Existem algumas técnicas de negociação para dissuadir o agressor nomeadamente:",
+                answers: [
+                    { text: "Referir que começou o seu turno há pouco tempo.", correct: true },
+                    { text: "Que o negócio está bom.", correct: false },
+					{ text: "Referir que está a acabar o turno.", correct: false }
+                ]
+            },
+						{
+                question: "O motorista de táxi para sua segurança pode recusar o serviço nas seguintes situações:",
+                answers: [
+                    { text: "Quando está a chover pois o veículo pode ficar sujo.", correct: false },
+                    { text: "Quando há perigosidade para a sua integridade física.", correct: true },
+					{ text: "Quando o cliente está alcoolizado.", correct: false },
+					{ text: "Quando estamos perante um passageiro com cão guia", correct: false }
+                ]
+            },
+						{
+                question: "O sistema de segurança 'Táxi Seguro':",
+                answers: [
+                    { text: "É um dispositivo ligado ao taxímetro.", correct: false },
+                    { text: "Através do sistema GPS permite à PSP localizar com rapidez o veículo em perigo.", correct: true },
+					{ text: "É obrigatório em todos os veículos táxi.", correct: false },
+					{ text: "Não existe.", correct: false }
+                ]
+            },
+						{
+                question: "O motorista de táxi está mais propenso a ser assaltado:",
+                answers: [
+                    { text: "Nos turnos noturnos.", correct: true },
+                    { text: "Nos turnos diurnos.", correct: false },
+					{ text: "Na praça.", correct: false },
+				    { text: "Se não transportar objetos de valor.", correct: false }
+                ]
+            },
+						{
+                question: "Após a entrada de um cliente o motorista de táxi deve:",
+                answers: [
+                    { text: "Tentar não olhar para o cliente.", correct: false },
+                    { text: "Nunca perder o diálogo com o cliente.", correct: true },
+					{ text: "Não dialogar.", correct: false },
+					{ text: "Manter o contacto visual com o cliente através do espelho retrovisor.", correct: false }
+                ]
+            },
+						{
+                question: "Uma das preocupações do motorista, deve ser:",
+                answers: [
+                    { text: "Apenas trancar o veículo quando repousa dentro deste.", correct: false },
+                    { text: "A segurança dos passageiros.", correct: true },
+					{ text: "Estacionar em locais mal iluminados.", correct: false },
+					{ text: "Deixar os vidros abertos e as portas destrancadas.", correct: false }
+                ]
+            },
+						{
+                question: "Nos termos da lei, podem ser recusados os serviços de táxi solicitados por: ",
+                answers: [
+                    { text: "Invisuais acompanhados por cão-guia.", correct: false },
+                    { text: "Pessoas com comportamento suspeito de perigosidade.", correct: true },
+					{ text: "Pessoas não portadoras de documento d e identificação.", correct: false }
+                ]
+            },
+						{
+                question: "É dever do motorista obedecer ao sinal de paragem de qualquer utente quando o táxi se encontre na situação de livre. Este pode, no entanto, recusar o serviço de táxi solicitado por:",
+                answers: [
+                    { text: "Indivíduos que se façam acompanhar de qualquer tipo de bagagem pessoal.", correct: false },
+                    { text: "Pessoas com comportamento suspeito de perigosidade.", correct: true },
+					{ text: "Pessoas não portadoras de documento de identificação.", correct: false }
+                ]
+            },
+						{
+                question: "Deve utilizar o colete retrorrefletor, quem procede à remoção do veículo, no caso de imobilização do veículo na faixa de rodagem.",
+                answers: [
+                    { text: "Não. Só o condutor do veículo está obrigado a utilizar o colete retrorrefletor.", correct: false },
+                    { text: "Sim, quem procede à remoção do veículo para fora da faixa de rodagem também deve utilizar o colete retrorrefletor. ", correct: true }
+                ]
+            },
+						{
+                question: "Apos um acidente que cuidados devem ser tomados?",
+                answers: [
+                    { text: "Desligar o motor do veículo.", correct: true },
+                    { text: "Avisar os outros condutores.", correct: false },
+					{ text: "Aproximar-se com cuidado do veículo acidentado.", correct: false }
+                ]
+            },
+						{
+                question: "O transporte de cães-guias de passageiros invisuais e de cadeira de rodas ou outros meios de marcha de pessoas com mobilidade reduzida:",
+                answers: [
+                    { text: "É obrigatório.", correct: true },
+                    { text: "É facultativo.", correct: false },
+					{ text: "Só é permitido em situações especiais.", correct: false },
+					{ text: "Todas as respostas anteriores estão corretas.", correct: false }
+                ]
+            },
+						{
+                question: "Numa situação de emergência como utilizar a central rádio:",
+                answers: [
+                    { text: "Acionar no equipamento rádio o dispositivo destinado a essa situação.", correct: true },
+                    { text: "Transmitir à central rádio o que está a acontecer.", correct: false },
+					{ text: "Falar com a central rádio de forma a que o cliente ouça a conversação.", correct: false }
+                ]
+            },
+						{
+                question: "Após um assalto o motorista deve:",
+                answers: [
+                    { text: "Contactar as entidades policiais e dar todas as referências possíveis dos assaltantes.", correct: true },
+                    { text: "Desistir de contatar as entidades policiais pois o assalto já se realizou.", correct: false },
+					{ text: "Perseguir os assaltantes.", correct: false }
+                ]
+            },
+						{
+                question: "Perante um cliente suspeito o motorista de táxi deve:",
+                answers: [
+                    { text: "Fazer a análise do passageiro e ter em atenção algum movimento ou atitude estranha.", correct: true },
+                    { text: "Ter esperança que nada vai acontecer.", correct: false },
+					{ text: "Pedir para sair do veículo.", correct: false }
+                ]
+            },
+						{
+                question: "O motorista, durante o serviço, pode apresentar-se com calções e T-shirt.",
+                answers: [
+                    { text: "Certo.", correct: false },
+                    { text: "Errado.", correct: true }
+                ]
+            },
+						{
+                question: "Em caso de avaria ou acidente, para que a presença do veículo na via não represente perigo para os outros utentes, o condutor deve:",
+                answers: [
+                    { text: "Colocar o triângulo de pré sinalização no pavimento, a uma distância de 20 metros do veículo para que o mesmo seja visível a 50 metros.", correct: false },
+                    { text: "Colocar o triângulo de pré sinalização no pavimento, a uma distância de pelo menos 30 metros da retaguarda do veículo ou da carga a sinalizar, garantindo que é visível a, pelo menos, a 100 metros, devendo dar-se especial atenção em locais de visibilidade reduzidas.", correct: true }
+                ]
+            },
+						{
+                question: "Após um assalto o motorista deve:",
+                answers: [
+                    { text: "Contactar as entidades policiais e dar todas as referências possíveis dos assaltantes.", correct: true },
+                    { text: "Dialogar com os colegas sobre o sucedido.", correct: false },
+					{ text: "Desistir de contatar as entidades policiais pois o assalto já se realizou.", correct: false }
+                ]
+            },
+						{
+                question: "Enquanto transporta um cliente, o motorista pode estar constantemente a falar ao telemóvel, ignorando o cliente, se este lhe fizer alguma pergunta.",
+                answers: [
+                    { text: "Certo.", correct: false },
+                    { text: "Errado.", correct: true }
+                ]
+            },
+						{
+                question: "Com um cliente dentro do veículo, o motorista pode comer uma sandes, pois já passou a sua hora habitual de almoço.",
+                answers: [
+                    { text: "Certo.", correct: false },
+                    { text: "Errado.", correct: true }
+                ]
+            },
+						{
+                question: "O motorista pode desobedecer ao sinal de paragem de um potencial utente, encontrando-se livre?",
+                answers: [
+                    { text: "Pode sempre.", correct: false },
+                    { text: "Não pode.", correct: true }
+                ]
+            },
+						{
+                question: "Se um cliente se esquece de qualquer coisa dentro do táxi:",
+                answers: [
+                    { text: "O motorista deve entregar o objeto esquecido o mais rapidamente possível à autoridade policial.", correct: true },
+                    { text: "O motorista pode ficar com o objeto esquecido dentro do seu veículo.", correct: false }
+                ]
+            },
+						{
+                question: "O motorista não se deve preocupar com o aspeto de asseio exterior do veículo.",
+                answers: [
+                    { text: "O motorista só tem que se preocupar com o asseio interior do veículo.", correct: false },
+                    { text: "O motorista deve preocupar-se em manter o veículo limpo na parte exterior e no interior do veículo.", correct: true }
+                ]
+            },
+						{
+                question: "O motorista de táxi não deve sair do veículo para ajudar um cliente com mobilidade reduzida.",
+                answers: [
+                    { text: "Certo.", correct: false },
+                    { text: "Errado.", correct: true }
+                ]
+            },
+						{
+                question: "Para tratar uma queimadura de 1º grau, deve-se",
+                answers: [
+                    { text: "Aplicar água corrente até existir pouca ou nenhuma dor.", correct: true },
+                    { text: "Aplicar uma boa quantidade de creme.", correct: false },
+					{ text: "Limpar a área com água quente e sabão.", correct: false }
+                ]
+            },
+						{
+                question: "Ao ligar para o 112, o que deve ser mencionado?",
+                answers: [
+                    { text: "Quem, o quê e onde.", correct: true },
+                    { text: "Onde, o quê e porquê.", correct: false },
+					{ text: "Porquê, quando e onde.", correct: false }
+                ]
+            },
+						{
+                question: "Na presença de um acidente e para sua própria segurança, deve:",
+                answers: [
+                    { text: "Atuar com calma e confiança de acordo com os seus conhecimentos.", correct: false },
+                    { text: "Chamar o 112 só após ter dados muito concretos sobre a gravidade do acidente.", correct: true },
+					{ text: "Atuar imediatamente, embora desconheça a situação dos acidentados.", correct: false }
+                ]
+            },
+						{
+                question: "Caso identifique que existe um acidente com vítimas, que número deve ligar para pedir ajuda?",
+                answers: [
+                    { text: "112.", correct: true },
+                    { text: "113.", correct: false },
+					{ text: "115.", correct: false }
+                ]
+            },
+						{
+                question: "Na sequência de um acidente, se houver um ferido que esteja com uma hemorragia de grande dimensão, o que devo fazer mesmo antes de ligar para o 112?",
+                answers: [
+                    { text: "Entrar em pânico.", correct: false },
+                    { text: "Ir buscar agua oxigenada.", correct: false },
+					{ text: "Tentar controlar a hemorragia.", correct: true }
+                ]
+            },
+						{
+                question: "No caso de uma vítima respirar mas esteja inconsciente, o que devo fazer antes de ligar para o 112?",
+                answers: [
+                    { text: "Colocar a vítima na posição lateral de segurança.", correct: true },
+                    { text: "Colocar a vítima de barriga para o solo.", correct: false },
+					{ text: "Colocar a vítima sentada.", correct: false },
+				    { text: "Não fazer nada.", correct: false }
+                ]
+            },
+						{
+                question: "Caso uma vítima não respire, deve de imediato pedir ajuda ao 112. Depois de efetuar o pedido de ajuda, o que devo fazer?",
+                answers: [
+                    { text: "Iniciar o mais rapidamente possível manobras de Suporte Básico de Vida.", correct: true },
+                    { text: "Não fazer nada.", correct: false },
+					{ text: "Começar a gritar.", correct: false },
+					{ text: "Deixar a vítima só e abandonar o local.", correct: false }
+                ]
+            },
+						{
+                question: "Em que situação deve ser utilizado o garrote?",
+                answers: [
+                    { text: "Em situação de hemorragia grave, não controlável.", correct: true },
+                    { text: "Em vítimas que estejam com dificuldades respiratórias.", correct: false },
+					{ text: "Em vítimas de queda sem hemorragia.", correct: false }
+                ]
+            },
+						{
+                question: "Se estiver a prestar auxilio a um motociclista que caiu e ficou inconsciente, deve:",
+                answers: [
+                    { text: "Deslocá-lo para um local mais confortável.", correct: false },
+                    { text: "Tentar, de imediato, levantar o condutor.", correct: false },
+					{ text: "Sinalizar, de imediato o local do acidente e pedir auxílio às autoridades.", correct: true }
+                ]
+            },
+						{
+                question: "Na sequência de um acidente, se houver um ferido que esteja com uma hemorragia de grande dimensão, o que devo fazer mesmo antes de ligar para o 112?",
+                answers: [
+                    { text: "Ir buscar agua oxigenada.", correct: false },
+                    { text: "Não fazer nada.", correct: false },
+					{ text: "Tentar controlar a hemorragia.", correct: true }
+                ]
+            },
+						{
+                question: "Se o motorista de táxi tiver um acidente e um dos ocupantes do outro veículo ficar ferido, pode abandonar o local?",
+                answers: [
+                    { text: "Sim, se o ferido não se encontrar em estado grave.", correct: false },
+                    { text: "Sim, mas só depois de ter chamado os agentes de autoridade.", correct: false },
+					{ text: "Não pode abandonar o local até que cheguem os agentes de autoridade.", correct: true }
+                ]
+            },
+						{
+                question: "Qual destes comportamentos é aceitável num motorista de táxi?",
+                answers: [
+                    { text: "Falar com os passageiros durante a viagem.", correct: true },
+                    { text: "Insultar os outros condutores.", correct: false },
+					{ text: "Utilizar palavras impróprias durante a conversa com os passageiros.", correct: false }
+                ]
+            },
+						{
+                question: "Quando se pode dizer que a comunicação tem sucesso?",
+                answers: [
+                    { text: "Quando a mensagem é simples.", correct: false },
+                    { text: "Quando a mensagem é complexa.", correct: false },
+					{ text: "Quando a mensagem é recebida.", correct: false },
+					{ text: "Quando a mensagem é compreendida.", correct: true }
+                ]
+            },
+						{
+                question: "O recetor descodifica a mensagem de acordo com:",
+                answers: [
+                    { text: "As suas perceções.", correct: true },
+                    { text: "As perceções do emissor. ", correct: false },
+					{ text: "Os seus interesses.", correct: false },
+					{ text: "Com o sentido das palavras.", correct: false }
+                ]
+            },
+						{
+                question: "Quando se cria uma mensagem, o que se pretende é:",
+                answers: [
+                    { text: "Atingir o objetivo.", correct: true },
+                    { text: "Estar em consonância com o recetor.", correct: false },
+					{ text: "Simplificar a tarefa de quem recebe.", correct: false },
+					{ text: "Adaptar o nível de informação.", correct: false }
+                ]
+            },
+						{
+                question: "Para ser considerado bom ouvinte deve:",
+                answers: [
+                    { text: "Evitar contato visual com quem está a falar.", correct: false },
+                    { text: "Evitar a comunicação frente a frente.", correct: false },
+					{ text: "Dizer o que pensa sobre o assunto.", correct: false },
+					{ text: "Evitar emitir opiniões.", correct: true }
+                ]
+            },
+						{
+                question: "Qual o melhor meio formal de comunicação tendo em vista assegurar a sua eficácia?",
+                answers: [
+                    { text: "Correio eletrónico.", correct: true },
+                    { text: "Videoconferência.", correct: false },
+					{ text: "Telefone ou fax.", correct: false },
+					{ text: "Reunião presencial.", correct: false }
+                ]
+            },
+						{
+                question: "Qual a melhor forma de recompensar o desempenho profissional?",
+                answers: [
+                    { text: "Melhoria das condições de trabalho.", correct: true },
+                    { text: "Através de incentivo verbal.", correct: false },
+					{ text: "Através de reconhecimento a nível da organização entre os outros empregados.", correct: false }
+                ]
+            },
+						{
+                question: "Quando pretende iniciar uma conversa deve adaptar a mensagem em função:",
+                answers: [
+                    { text: "Da contribuição que pretende receber.", correct: false },
+                    { text: "Dos objetivos que pretende atingir.", correct: true },
+					{ text: "Do entusiasmo que coloca no tema.", correct: false },
+					{ text: "Do interlocutor.", correct: false }
+                ]
+            },
+						{
+                question: "Muitos dos problemas profissionais surgem por falhas de comunicação. A mais importante é:",
+                answers: [
+                    { text: "Não saber ouvir.", correct: true },
+                    { text: "Não ser inteligente.", correct: false },
+					{ text: "Ser de classe social diferente.", correct: false },
+					{ text: "Ser de raça e cultura diferente.", correct: false }
+                ]
+            },
+						{
+                question: "O cliente sai do táxi às 23 horas. O motorista diz-lhe:",
+                answers: [
+                    { text: "Good evening, Sir/Madam.", correct: false },
+                    { text: "Good morning, Sir/Madam.", correct: false },
+					{ text: "Good night, Sir/Madam.", correct: true }
+                ]
+            },
+						{
+                question: "O cliente pergunta se deve colocar o cinto de segurança. O motorista responde:",
+                answers: [
+                    { text: "Yes, please use it.", correct: true },
+                    { text: "No, you don’t need to use it.", correct: false }
+                ]
+            },
+						{
+                question: "Se um cliente se esquece de qualquer coisa dentro do táxi:",
+                answers: [
+                    { text: "The driver should hand it into a police station as soon as possible.", correct: true },
+                    { text: "The taxi driver is required to maintain the lost property in his taxi.", correct: false }
+                ]
+            },
+						{
+                question: "The tourist asks you: do you tip taxi drivers here in Portugal? What should you say?",
+                answers: [
+                    { text: "Tipping is against the law in Portugal, you must not do it.", correct: false },
+                    { text: "Tipping is not required here, but If you liked the service it is always appreciated.", correct: true },
+					{ text: "Yes, the standard rate for tipping is 10% above the fee listed no the meter.", correct: false }
+                ]
+            },
+						{
+                question: "A taxi driver can not charge more than the authorized fee. What does it mean?",
+                answers: [
+                    { text: "O taxista pede o que considera justo pelo trajeto.", correct: false },
+                    { text: "O taxista não pode cobrar mais do que o valor marcado no taxímetro.", correct: true },
+					{ text: "O taxista pode esperar que o cliente pague pelo menos mais 10% em relação ao que o taxímetro marca.", correct: false }
+                ]
+            },
+						{
+                question: "Taxi drivers must drive carefully and safely. What does it mean?",
+                answers: [
+                    { text: "Conduzir segundo as regras do Código da Estrada, a maior parte do tempo.", correct: false },
+                    { text: "Conduzir devagar, caso o passageiro reclame que vai muito depressa.", correct: false },
+					{ text: "Conduzir sempre segundo as regras do Código da Estrada.", correct: true }
+                ]
+            },
+						{
+                question: "Read each statement below. Which one is true?",
+                answers: [
+                    { text: "O taxista pode recusar transportar o cliente, caso seja um percurso curto.", correct: false },
+                    { text: "O motorista de táxi pode-se recusar a aceitar qualquer percurso.", correct: false },
+					{ text: "O motorista de táxi deve utilizar o percurso mais curto e rápido para o destino. ", correct: true }
+                ]
+            },
+						{
+                question: "Em inglês, táxi designa-se também por:",
+                answers: [
+                    { text: "Comber.", correct: false },
+                    { text: "Concierge.", correct: false },
+					{ text: "Cab.", correct: true },
+					{ text: "Consultant.", correct: false }
+                ]
+            },
+						{
+                question: "Qual o significado de taxi stand?",
+                answers: [
+                    { text: "Local de paragem de táxis.", correct: true },
+                    { text: "Stand de táxis.", correct: false },
+					{ text: "Aviso de paragem de táxis.", correct: false },
+					{ text: "Nenhuma das anteriores.", correct: false }
+                ]
+            },
+						{
+                question: "Ao cumprimentar o cliente de acordo com as horas do dia (manhã, tarde ou noite) deverá utilizar a expressão:",
+                answers: [
+                    { text: "Good morning/good afternoon/good evening Sir/Madam.", correct: true },
+                    { text: "Hi Sir/Madam.", correct: false },
+					{ text: "Hello Sir/Madam.", correct: false },
+					{ text: "Hey Sir/Madam.", correct: false }
+                ]
+            },
+						{
+                question: "No auxílio do transporte de bagagem do cliente, que expressão deve utilizar em inglês?",
+                answers: [
+                    { text: "I’ll get your luggage.", correct: false },
+                    { text: "Let me help you with your luggage Sir/Madam.", correct: true },
+					{ text: "Take your bags Sir/Madam.", correct: false },
+					{ text: "Do you have luggage?", correct: false }
+                ]
+            },
+						{
+                question: "Qual o significado da seguinte expressão: 'Could you take me to the shopping center?'",
+                answers: [
+                    { text: "Pode levar-me ao centro da cidade?", correct: false },
+                    { text: "Pode levar-me até ao centro comercial?", correct: true },
+					{ text: "Pode dar-me a minha mala?", correct: false }
+                ]
+            },
+						{
+                question: "Could you take me to the airport?",
+                answers: [
+                    { text: "Onde fica o aeroporto?", correct: false },
+                    { text: "Pode levar-me até ao aeroporto?", correct: true },
+					{ text: "Quero ir para o aeroporto", correct: false },
+					{ text: "Vai para o aeroporto?", correct: false }
+                ]
+            },
+						{
+                question: "Como se pergunta ao cliente para onde deseja ir?",
+                answers: [
+                    { text: "Where to, Sir/Madam?", correct: true },
+                    { text: "Are there any bags?", correct: false },
+					{ text: "Do you have any luggage?", correct: false },
+					{ text: "Do you have any luggage, Sir/Madam?", correct: false }
+                ]
+            },
+						{
+                question: "Como se pergunta ao cliente se tem bagagem?",
+                answers: [
+                    { text: "Do you have bags?", correct: false },
+                    { text: "Are there any bags?", correct: false },
+					{ text: "Do you have any luggage?", correct: true }
+                ]
+            },
+						{
+                question: "Se o cliente estrangeiro(a) disser 'Please slow down', o que deve fazer?",
+                answers: [
+                    { text: "Mudar de direção à esquerda.", correct: false },
+                    { text: "Acelerar.", correct: false },
+					{ text: "Parar.", correct: false },
+					{ text: "Abrandar.", correct: true }
+                ]
+            },
+						{
+                question: "Como se deseja uma boa estadia ao cliente?",
+                answers: [
+                    { text: "Good stay, Sir/Madam.", correct: false },
+                    { text: "Nice stay, Sir/Madam.", correct: false },
+					{ text: "Have a nice stay, Sir/Madam.", correct: true },
+					{ text: "Have a nice stadium, Sir/Madam.", correct: false }
+                ]
+            },
+						{
+                question: "O que significa: 'Could you take me to the railway station?'",
+                answers: [
+                    { text: "Onde fica a estação de comboios?", correct: false },
+                    { text: "Pode levar-me até à estação de comboios?", correct: true },
+					{ text: "Quero ir para a estação de comboios.", correct: false },
+					{ text: "Vai para a estação de comboios?", correct: false }
+                ]
+            },
+						{
+                question: "O que significa: 'Could you take me to the nearest pharmacy?'",
+                answers: [
+                    { text: "Pode levar-me à farmácia?", correct: false },
+                    { text: "Pode levar-me até à farmácia mais próxima?", correct: true },
+					{ text: "Onde há uma farmácia?", correct: false },
+					{ text: "Vai para uma farmácia?", correct: false }
+                ]
+            },
+						{
+                question: "Qual a expressão em inglês que significa: 'pode dar-me um recibo, por favor?'",
+                answers: [
+                    { text: "Would you like a receipt?", correct: false },
+                    { text: "Have you got a receipt?", correct: false },
+					{ text: "Could I have a receipt, please?", correct: true },
+					{ text: "Where is the receipt?", correct: false }
+                ]
+            },
+						{
+                question: "O que significa: 'How much is the typical fee?'",
+                answers: [
+                    { text: "Quando custa a corrida na feira?", correct: false },
+                    { text: "Qual é o preço da viagem?", correct: true },
+					{ text: "Onde é a feira típica?", correct: false }
+                ]
+            },
+						{
+                question: "O que significa: 'That´s fine, keep the change'",
+                answers: [
+                    { text: "Mantenha a mudança.", correct: false },
+                    { text: "Está certo, fique com o troco.", correct: true },
+					{ text: "Onde é a feira?", correct: false },
+					{ text: "Tem troco?", correct: false }
+                ]
+            },
+						{
+                question: "O que significa: 'How much do I owe you?'",
+                answers: [
+                    { text: "Mantenha a mudança.", correct: false },
+                    { text: "Fique com o troco.", correct: false },
+					{ text: "Quanto me deve?", correct: false },
+					{ text: "Quanto lhe devo?", correct: true }
+                ]
+            },
+						{
+                question: "'I am really in a hurry, so can you take the quickest route, please' significa que o cliente lhe diz:",
+                answers: [
+                    { text: "Tenho pressa.", correct: false },
+                    { text: "Vá depressa, por favor.", correct: false },
+					{ text: "Estou com alguma pressa, pode ir pelo caminho mais rápido?", correct: true },
+					{ text: "Qual o roteiro mais rápido?", correct: false }
+                ]
+            },
+						{
+                question: "Complete a frase 'Taxi drivers _________up passengers'",
+                answers: [
+                    { text: "Lift.", correct: false },
+                    { text: "Pick.", correct: true },
+					{ text: "Carry.", correct: false },
+					{ text: "Catch.", correct: false }
+                ]
+            },
+						{
+                question: "Em conversação com o cliente no início do serviço, que expressão utiliza para a pergunta: 'gostaria de se sentar no banco da frente ou atrás?'",
+                answers: [
+                    { text: "Where to?", correct: false },
+                    { text: "Would you like to sit in the front seat or in the back seat?", correct: true },
+					{ text: "Would you like to go to the back seat?", correct: false },
+					{ text: "You go to the back or to the front seat?", correct: false }
+                ]
+            },
+						{
+                question: "Como pergunta a um cliente estrangeiro para onde deseja ir?",
+                answers: [
+                    { text: "What is your name?", correct: false },
+                    { text: "Where would you like to go?", correct: true },
+					{ text: "Where are you from?", correct: false },
+					{ text: "Are you here on vacation?", correct: false }
+                ]
+            },
+						{
+                question: "Caso o cliente estrangeiro lhe agradeça, deve responder:",
+                answers: [
+                    { text: "You are welcome.", correct: true },
+                    { text: "Ok.", correct: false },
+					{ text: "Nothing.", correct: false }
+                ]
+            },
+						{
+                question: "O cliente dá a seguinte indicação: é na esquina da Rua Barata Ribeiro com a Constante Ramos, diz-se:",
+                answers: [
+                    { text: "What (avenue/street) is this?", correct: false },
+                    { text: "I would like to go to avenue...", correct: false },
+					{ text: "I would like to go to the street...", correct: false },
+					{ text: "At the corner of Barata Ribeiro with Constante Ramos Street.", correct: true }
+                ]
+            },
+						{
+                question: "You can stop over there, please, significa:",
+                answers: [
+                    { text: "Pode parar ali, por favor.", correct: true },
+                    { text: "Não pare ali.", correct: false },
+					{ text: "Por favor, espere aqui.", correct: false }
+                ]
+            },
+						{
+                question: "Se um estrangeiro diz : 'To the airport, please' o que deve responder?' ",
+                answers: [
+                    { text: "Would you like to go by the quickest route or not?", correct: false },
+                    { text: "Nothing.", correct: false },
+					{ text: "Por favor, espere aqui.", correct: false },
+					{ text: "Yes, Sir/Madam.", correct: true }
+                ]
+            },
+						{
+                question: "Complete a seguinte frase 'I’m sorry, this taxi is already ______'.",
+                answers: [
+                    { text: "Free.", correct: false },
+                    { text: "Not free.", correct: false },
+					{ text: "Booked.", correct: true }
+                ]
+            },
+						{
+                question: "Um turista pergunta: Onde posso encontrar um táxi?",
+                answers: [
+                    { text: "Where can I get a taxi?", correct: true },
+                    { text: "Please get me a cab.", correct: false },
+					{ text: "Is there any taxi around?", correct: false },
+					{ text: "Where is the taxi?", correct: false }
+                ]
+            },
+						{
+                question: "Qual das seguintes frases significa que o cliente diz: vire na próxima esquina, por favor.",
+                answers: [
+                    { text: "Turn left, please.", correct: false },
+                    { text: "Turn right, please.", correct: false },
+					{ text: "Turn at the next corner, please.", correct: true },
+					{ text: "Turn around.", correct: false }
+                ]
+            },
+						{
+                question: "Como perguntaria ao cliente: Onde devo deixá-lo(a)?",
+                answers: [
+                    { text: "Where would you like me to drop you off?", correct: true },
+                    { text: "Where could you like me to drop you off?", correct: false },
+					{ text: "Where should you like me to drop you off?", correct: false }
+                ]
+            },
+						{
+                question: "Que palavras significam 'uma boa ideia ou sugestão'?",
+                answers: [
+                    { text: "Good idea or suggestion.", correct: true },
+                    { text: "Good plan.", correct: false },
+					{ text: "Good request.", correct: false },
+					{ text: "Good order.", correct: false }
+                ]
+            },
+						{
+                question: "Como se pergunta 'Onde posso levá-lo(a)'.",
+                answers: [
+                    { text: "Where can I make you?", correct: false },
+                    { text: "Where can I take you?", correct: true },
+					{ text: "Where can I go you?", correct: false },
+					{ text: "Where can I send you?", correct: false }
+                ]
+            },
+						{
+                question: "Qual a expressão em inglês para dizer ao cliente que: 'não é permitido fumar neste táxi'.",
+                answers: [
+                    { text: "No smoking.", correct: false },
+                    { text: "Yes you can smoke.", correct: false },
+					{ text: "Smoking is not allowed in this taxi.", correct: true }
+                ]
+            },
+						{
+                question: "Como diz ao cliente que pode transportar animais de estimação?",
+                answers: [
+                    { text: "You cannot take pets in this taxi.", correct: false },
+                    { text: "You can take pets in this taxi..", correct: true },
+					{ text: "No pets.", correct: false },
+					{ text: "Pets yes.", correct: false }
+                ]
+            },
+						{
+                question: "Which of these things is acceptable behaviour for a taxi driver?",
+                answers: [
+                    { text: "Utilizar palavras impróprias durante a conversa com os clientes.", correct: false },
+                    { text: "Gritar por causa da lentidão do tráfego.", correct: false },
+					{ text: "Falar com os passageiros durante a viagem.", correct: true }
+                ]
+            },
+						{
+                question: "Se o cliente lhe disser 'Can you take me to the football stadium, please?' significa:",
+                answers: [
+                    { text: "Onde fica o estádio de futebol?", correct: false },
+                    { text: "Existe por aqui algum estádio de futebol?", correct: false },
+					{ text: "Leve-me ao estádio de futebol, por favor.", correct: true },
+					{ text: "Quero ir para o estádio.", correct: false }
+                ]
+            },
+        ];
+
+        function startTest() {
+            if (questions.length < 40) {
+                document.getElementById('error-message').textContent = 'Erro: O banco de perguntas precisa conter no mínimo 40 perguntas.';
+                document.getElementById('error-message').style.display = 'block';
+                return;
+            }
+            
+            document.getElementById('error-message').style.display = 'none'; // Esconde a mensagem se estiver tudo certo
+            selectedAnswers = new Array(questions.length).fill(null);
+            const questionPool = [...questions];
+            selectedQuestions = [];
+
+            while (selectedQuestions.length < 40) {
+                const randomIndex = Math.floor(Math.random() * questionPool.length);
+                selectedQuestions.push(questionPool.splice(randomIndex, 1)[0]);
+            }
+
+            timeRemaining = 60 * 60;
+
+            document.getElementById('questions-container').classList.remove('hidden');
+            document.getElementById('start-btn').classList.add('hidden');
+            document.getElementById('restart-btn').classList.add('hidden');
+            document.getElementById('taxi-image').classList.add('hidden');
+            document.getElementById('result-container').classList.add('hidden'); // Esconde os resultados
+
+            startTimer();
+            showQuestion(0);
+        }
+
+        function startTimer() {
+            const timerDisplay = document.getElementById('timer');
+            clearInterval(timer);
+            timer = setInterval(() => {
+                if (timeRemaining <= 0) {
+                    clearInterval(timer);
+                    alert('O tempo acabou! O teste será submetido automaticamente.');
+                    submitTest();
+                }
+                const minutes = Math.floor(timeRemaining / 60);
+                const seconds = timeRemaining % 60;
+                timerDisplay.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                timeRemaining--;
+            }, 1000);
+        }
+
+        function showQuestion(index) {
+            const questionDisplay = document.getElementById('question-display');
+            const prevBtn = document.getElementById('prev-btn');
+            const nextBtn = document.getElementById('next-btn');
+            const submitBtn = document.getElementById('submit-btn');
+
+            currentQuestionIndex = index;
+            const question = selectedQuestions[index];
+
+            questionDisplay.innerHTML = `<p><strong>${index + 1}. ${question.question}</strong></p>`;
+            const answersDiv = document.createElement('div');
+            answersDiv.classList.add('answers');
+
+            question.answers.forEach((answer, answerIndex) => {
+                const button = document.createElement('button');
+                button.textContent = answer.text;
+                if (selectedAnswers[index] === answerIndex) {
+                    button.classList.add('selected');
+                }
+                button.onclick = () => {
+                    selectedAnswers[index] = answerIndex;
+                    showQuestion(index);
+                };
+                answersDiv.appendChild(button);
+            });
+
+            questionDisplay.appendChild(answersDiv);
+            prevBtn.classList.toggle('hidden', index === 0);
+            nextBtn.classList.toggle('hidden', index === selectedQuestions.length - 1);
+            submitBtn.classList.toggle('hidden', index !== selectedQuestions.length - 1);
+
+            document.getElementById('question-number').textContent = `Pergunta ${index + 1} de ${selectedQuestions.length}`;
+        }
+
+        function nextQuestion() {
+            if (currentQuestionIndex < selectedQuestions.length - 1) {
+                showQuestion(currentQuestionIndex + 1);
+            }
+        }
+
+        function prevQuestion() {
+            if (currentQuestionIndex > 0) {
+                showQuestion(currentQuestionIndex - 1);
+            }
+        }
+
+        function updateStats() {
+            localStorage.setItem('testsTaken', testsTaken);
+            localStorage.setItem('testsPassed', testsPassed);
+            localStorage.setItem('testsFailed', testsFailed);
+        }
+        
+        function submitTest() {
+            clearInterval(timer);
+            const correctAnswers = selectedAnswers.filter((answer, index) => 
+                answer !== null && selectedQuestions[index].answers[answer]?.correct).length;
+            previousWrongQuestions = selectedQuestions.filter((_, index) => 
+                selectedAnswers[index] === null || !selectedQuestions[index].answers[selectedAnswers[index]]?.correct);
+
+            const resultMessage = document.getElementById('result-message');
+            const cryingImage = document.getElementById('crying-image');
+            const congratsImage = document.getElementById('congrats-image');
+            const restartBtn = document.getElementById('restart-btn');
+            const statsBtn = document.getElementById('stats-btn');
+            const submitBtn = document.getElementById('submit-btn');
+
+            document.getElementById('questions-container').classList.add('hidden');
+            document.getElementById('result-container').classList.remove('hidden');
+            document.getElementById('review-btn').classList.remove('hidden');
+            document.getElementById('restart-btn').classList.remove('hidden');
+			
+            testsTaken++;
+
+            if (correctAnswers >= 28) { // Critério de aprovação
+                resultMessage.textContent = `Aprovado! Você acertou ${correctAnswers} de ${selectedQuestions.length}.`;
+                resultMessage.style.color = 'green';
+                cryingImage.style.display = 'none';
+                congratsImage.style.display = 'block';
+                testsPassed++;
+            } else {
+                resultMessage.textContent = `Reprovado. Você acertou ${correctAnswers} de ${selectedQuestions.length}.`;
+                resultMessage.style.color = 'red';
+                cryingImage.style.display = 'block';
+                congratsImage.style.display = 'none';
+                testsFailed++;
+            }
+
+            restartBtn.classList.remove('hidden');
+            statsBtn.style.display = 'block';
+            submitBtn.classList.add('hidden');
+
+            if (testsTaken >= 5) {
+                wrongTestBtn.classList.remove('hidden');
+            }
+            
+            updateStats();
+        }
+        
+        function reviewTest() {
+            const container = document.getElementById('questions-container');
+            container.innerHTML = '';
+            selectedQuestions.forEach((question, index) => {
+                const questionElement = document.createElement('div');
+                questionElement.textContent = `Pergunta ${index + 1} - ${question.question}`;
+                questionElement.classList.add('question');
+
+                const answersContainer = document.createElement('div');
+                answersContainer.classList.add('answers');
+                
+                question.answers.forEach((answer, i) => {
+                    const answerButton = document.createElement('button');
+                    answerButton.textContent = answer.text;
+                    if (selectedAnswers[index] === i) {
+                        answerButton.classList.add('selected');
+                        if (answer.correct) {
+                            answerButton.classList.add('correct');
+                        } else {
+                            answerButton.classList.add('incorrect');
+                        }
+                    }
+                    answerButton.disabled = true;
+                    answersContainer.appendChild(answerButton);
+                });
+
+                container.appendChild(questionElement);
+                container.appendChild(answersContainer);
+            });
+            
+            container.classList.remove('hidden');
+            document.getElementById('result-container').classList.add('hidden');
+            document.getElementById('review-btn').classList.add('hidden');
+            document.getElementById('restart-btn')?.classList.add('hidden');
+            document.getElementById('wrong-test-btn')?.classList.add('hidden');
+            
+            // Mostrar o botão "Voltar"
+            const backButton = document.getElementById('back-button');
+            backButton.classList.remove('hidden');
+        }
+
+        function goBack() {
+            document.getElementById('questions-container').classList.add('hidden');
+            document.getElementById('result-container').classList.remove('hidden');
+            document.getElementById('review-btn').classList.remove('hidden');
+            document.getElementById('back-button').classList.add('hidden');
+            document.getElementById('restart-btn').classList.remove('hidden');
+            
+            // Verificar se há questões erradas antes de mostrar o botão "Teste de Erradas"
+            if (previousWrongQuestions.length > 0) {
+                document.getElementById('wrong-test-btn').classList.remove('hidden');
+            }
+        }
+
+        function restartTest() {
+            location.reload(); // Recarrega a página para iniciar um novo teste
+        }
+
+        function restartTestAndShowStats() {
+            document.getElementById('review-btn').classList.add('hidden');
+		
+            startTest();
+        }
+
+        function showStatsPopup() {
+            document.getElementById('tests-taken').textContent = testsTaken;
+            document.getElementById('tests-passed').textContent = testsPassed;
+            document.getElementById('tests-failed').textContent = testsFailed;
+            document.getElementById('stats-popup').style.display = 'block';
+        }
+
+        function closeStatsPopup() {
+            document.getElementById('stats-popup').style.display = 'none';
+        }
+
+        function resetStats() {
+            testsTaken = 0;
+            testsPassed = 0;
+            testsFailed = 0;
+            updateStats();
+            showStatsPopup();
+        }
+    </script>
+</body>
+</html>
+
+
+
