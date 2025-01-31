@@ -1181,8 +1181,8 @@
 			{
                 question: "As empresas de transporte em táxi devem comunicar ao IMT as alterações ao pacto social (mudança de sede, por exemplo).",
                 answers: [
-                    { text: "No prazo de 30 dias a contar da sua ocorrência.", correct: false },
-                    { text: "No prazo de 48 horas.", correct: true },
+                    { text: "No prazo de 30 dias a contar da sua ocorrência.", correct: true },
+                    { text: "No prazo de 48 horas.", correct: false },
 					{ text: "Sem prazo fixado.", correct: false }
                 ]
             },
@@ -2618,7 +2618,7 @@
             statsBtn.style.display = 'block';
             submitBtn.classList.add('hidden');
 
-            if (testsTaken >= 5) {
+            if (testsTaken >= 100000) {
                 wrongTestBtn.classList.remove('hidden');
             }
             
