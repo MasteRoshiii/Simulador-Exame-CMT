@@ -741,8 +741,8 @@
                 question: "Um condutor ecológico:",
                 answers: [
                     { text: "Engrena mudanças mais baixas para diminuir a rotação do motor.", correct: false },
-                    { text: "Desembraia o veículo nas descidas de inclinação acentuada.", correct: true },
-					{ text: "Conduz com velocidade mais constante, evitando acelerações e travagens bruscas.", correct: false }
+                    { text: "Desembraia o veículo nas descidas de inclinação acentuada.", correct: false },
+					{ text: "Conduz com velocidade mais constante, evitando acelerações e travagens bruscas.", correct: true }
                 ]
             },
 			{
@@ -1669,7 +1669,7 @@
                 question: "Num acidente de viação em que haja culpa do motorista, empregado de uma empresa de táxis, pelos danos que o veículo causar a outrem, responde:",
                 answers: [
                     { text: "Apenas o motorista.", correct: false },
-                    { text: "Solidariamente o motorista, a empresa de táxis e a companhia de seguros.", correct: false },
+                    { text: "Solidariamente o motorista, a empresa de táxis e a companhia de seguros.", correct: true },
 					{ text: "Apenas a companhia de seguros.", correct: true }
                 ]
             },
@@ -2619,7 +2619,7 @@
             submitBtn.classList.add('hidden');
 
             if (testsTaken >= 100000) {
-                wrongTestBtn.classList.remove('hidden');
+                wrongTestBtn.classList.remove('hidden')
             }
             
             updateStats();
@@ -2710,6 +2710,4 @@
     </script>
 </body>
 </html>
-
-
 
